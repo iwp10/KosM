@@ -1,0 +1,80 @@
+# TASKS.md — Daftar Tugas KosM
+
+> Agent wajib memperbarui centang setelah tugas selesai. Kerjakan **satu tugas per sesi**.
+> Format: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai.
+> ID mengikuti `docs/prd.md` (v0.2).
+
+## Fase 0 — Fondasi
+- [ ] T0.1 Buat proyek Flutter (Android), rapikan struktur folder sesuai ARCHITECTURE.md
+- [ ] T0.2 Tambah package inti (riverpod, go_router, drift, intl, google_fonts, uuid)
+- [ ] T0.3 Token tema: `app_colors`, `app_text_styles`, `app_spacing`, `app_radius`, `app_theme` (terang & gelap)
+- [ ] T0.4 Komponen bersama: `AppCard`, `StatusChip`, `PrimaryButton`, `SecondaryButton`, `AppTextField`, `EmptyState`, `ConfirmDialog`, `AppSnackbar`, `PropertySwitcher`, `SlotIndicator`, `RateTypeChip`
+- [ ] T0.5 Router + shell bottom navigation (5 tab, layar placeholder)
+- [ ] T0.6 `AppDatabase` drift: semua tabel (owner_profile, properties, rooms, tenants, occupancies, charges, payments, reminders, app_settings) + `schemaVersion = 1` + test dasar
+- [ ] T0.7 Utilitas: `formatRupiah`, format tanggal `id_ID`, generator UUID + unit test
+- [ ] T0.8 CI GitHub Actions (format, analyze, test)
+
+## Fase 1 — Kelola Kos & Daftar Penyewa
+**Kelola Kos (multi-lokasi)**
+- [ ] F9.1 Daftar kos + onboarding membuat kos pertama
+- [ ] F9.2 Tambah/ubah/hapus kos (tolak hapus jika masih ada penghuni aktif)
+- [ ] F9.3 Pilih kos aktif (`PropertySwitcher`, simpan `active_property_id`)
+- [ ] F9.4 Tampilan gabungan "Semua Kos"
+
+**Daftar Penyewa**
+- [ ] F1.1 Daftar semua penyewa (data + UI + 4 kondisi layar)
+- [ ] F1.3 Cari & saring penyewa
+- [ ] F1.4 Tambah/ubah/hapus penyewa + detail penyewa
+- [ ] F1.2 Ringkasan kos sekilas di Beranda (butuh kamar/tagihan; boleh sementara 0)
+
+## Fase 2 — Kamar, Masuk/Keluar, Tagihan & Pembayaran
+**Data Kamar & Kos**
+- [ ] F2.1 Daftar kamar (kapasitas, sisa slot, tarif acuan)
+- [ ] F2.4 Tambah/ubah/hapus kamar (kapasitas; tolak hapus jika masih berpenghuni)
+- [ ] F2.2 Status kamar turunan: kosong / terisi sebagian / penuh / perbaikan + test
+- [ ] F2.3 Lihat kamar tersedia (kosong + masih ada slot)
+
+**Catat Masuk & Keluar**
+- [ ] F3.1 Catat penyewa masuk (slot tersedia, jenis tarif harian/mingguan/bulanan, harga per satuan, lama sewa)
+- [ ] F3.2 Catat penyewa keluar
+- [ ] F3.3 Riwayat masuk & keluar
+- [ ] F3.4 Pindah kamar / perpanjang sewa (perpanjang membuat tagihan baru)
+
+**Tagihan & Pembayaran**
+- [ ] F4.5 `ChargeGenerator`: tagihan sewa otomatis harian/mingguan/bulanan, idempoten + test
+- [ ] F4.6 Biaya tambahan (listrik, air, denda, lainnya)
+- [ ] F4.1 Catat pembayaran per tagihan (termasuk cicilan)
+- [ ] F4.2 Riwayat pembayaran
+- [ ] F4.3 Status tagihan: lunas / belum bayar / menunggak (turunan) + test
+- [ ] F4.4 Kuitansi pembayaran (bagikan)
+- [ ] F1.2 Sempurnakan ringkasan Beranda dengan data nyata (per kos & semua kos)
+
+## Fase 3 — Pengingat, Offline Penuh, Cadangan
+- [ ] F5.1 Pengingat sebelum penyewa keluar
+- [ ] F5.2 Pengingat tagihan jatuh tempo
+- [ ] F5.3 Daftar pengingat mendatang
+- [ ] F6.1 Audit: semua fitur inti jalan di mode pesawat
+- [ ] F6.2 Indikator status sinkron (`SyncIndicator`)
+- [ ] F7.0 Siapkan Google Cloud (OAuth, Drive API), langkah manual, lihat LANGKAH_PENGERJAAN.md
+- [ ] F7.1 Sambungkan/putuskan Google Drive
+- [ ] F7.2 Cadangan otomatis (WorkManager) + tombol cadangkan sekarang
+- [ ] F7.3 Hapus semua cadangan di Drive
+- [ ] F7.4 Pulihkan dari cadangan
+
+## Fase 4 — Akun, Pengaturan, Ekspor
+- [ ] F8.1 Masuk/keluar akun Google
+- [ ] F8.2 Profil pemilik
+- [ ] F8.3 Preferensi aplikasi (tema, jam pengingat, frekuensi cadangan)
+- [ ] F10.1 Ekspor ke Excel (.xlsx), lembar Penyewa/Kamar/Hunian/Tagihan/Pembayaran
+- [ ] F10.2 Filter laporan (kos, rentang tanggal)
+- [ ] F10.3 Ringkasan keuangan (pemasukan per bulan per kos, tunggakan)
+- [ ] F10.4 Bagikan file Excel
+
+## Fase 5 — Rilis
+- [ ] T5.1 Ikon aplikasi, splash, nama aplikasi
+- [ ] T5.2 Uji menyeluruh di HP nyata (offline/online, notifikasi, cadangan–pulihkan, 2 kos)
+- [ ] T5.3 Keystore & build rilis (APK/AAB), versi 1.0.0
+- [ ] T5.4 GitHub Release + catatan rilis
+
+## Catatan Sesi
+<!-- Agent: tulis temuan/keputusan penting di sini (tanggal — catatan) -->
