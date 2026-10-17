@@ -5,10 +5,10 @@
 > ID mengikuti `docs/prd.md` (v0.2).
 
 ## Fase 0 — Fondasi
-- [ ] T0.1 Buat proyek Flutter (Android), rapikan struktur folder sesuai ARCHITECTURE.md
-- [ ] T0.2 Tambah package inti (riverpod, go_router, drift, intl, google_fonts, uuid)
-- [ ] T0.3 Token tema: `app_colors`, `app_text_styles`, `app_spacing`, `app_radius`, `app_theme` (terang & gelap)
-- [ ] T0.4 Komponen bersama: `AppCard`, `StatusChip`, `PrimaryButton`, `SecondaryButton`, `AppTextField`, `EmptyState`, `ConfirmDialog`, `AppSnackbar`, `PropertySwitcher`, `SlotIndicator`, `RateTypeChip`
+- [~] T0.1 Buat proyek Flutter (Android), rapikan struktur folder sesuai ARCHITECTURE.md
+- [ ] T0.2 Tambah package inti (riverpod, go_router, drift, intl, uuid)
+- [x] T0.3 Token tema: `app_colors`, `app_text_styles`, `app_spacing`, `app_radius`, `app_theme` (terang & gelap)
+- [x] T0.4 Komponen bersama: `AppCard`, `StatusChip`, `PrimaryButton`, `SecondaryButton`, `AppTextField`, `EmptyState`, `ConfirmDialog`, `AppSnackbar`, `PropertySwitcher`, `SlotIndicator`, `RateTypeChip`
 - [ ] T0.5 Router + shell bottom navigation (5 tab, layar placeholder)
 - [ ] T0.6 `AppDatabase` drift: semua tabel (owner_profile, properties, rooms, tenants, occupancies, charges, payments, reminders, app_settings) + `schemaVersion = 1` + test dasar
 - [ ] T0.7 Utilitas: `formatRupiah`, format tanggal `id_ID`, generator UUID + unit test
@@ -78,3 +78,10 @@
 
 ## Catatan Sesi
 <!-- Agent: tulis temuan/keputusan penting di sini (tanggal — catatan) -->
+- 2026-10-18: T0.3 (Token tema terang & gelap, Plus Jakarta Sans lokal) dan T0.4 (11 komponen bersama + layar pratinjau visual) selesai dikerjakan, lolos format, analyze (0 issue), dan seluruh unit/widget test.
+- 2026-10-18 (Audit Fase 0):
+  - T0.1 [~] Sebagian selesai: Proyek Flutter Android siap, demo counter dihapus, lib/main.dart & lib/app.dart siap. Sisa: pembuatan pohon folder lib/features/ (10 modul), lib/l10n/, serta subfolder lib/core/ (router, database, utils, services, errors).
+  - T0.2 [ ] Belum selesai: Package inti (flutter_riverpod, go_router, drift, intl, uuid) belum ada di pubspec.yaml.
+  - T0.3 [x] Selesai: Token warna, tipografi font lokal, spasi, radius, tema M3 terang/gelap + unit test lolos.
+  - T0.4 [x] Selesai: 11 komponen bersama + preview visual + unit & widget test lolos.
+  - T0.5 - T0.8 [ ] Belum selesai: Menunggu penyelesaian T0.1 dan T0.2.
