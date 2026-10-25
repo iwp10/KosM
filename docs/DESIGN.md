@@ -14,7 +14,7 @@
 ### Mode Terang
 | Token | Hex | Pemakaian |
 |---|---|---|
-| `primary` | `#0F766E` | Tombol utama, tab aktif, tautan |
+| `primary` | `#005C55` | Tombol utama, tab aktif, tautan |
 | `onPrimary` | `#FFFFFF` | Teks di atas primary |
 | `primaryContainer` | `#CCFBF1` | Latar chip/aksen lembut |
 | `onPrimaryContainer` | `#134E4A` | Teks di atas primaryContainer |
@@ -25,6 +25,9 @@
 | `textPrimary` | `#0F172A` | Teks utama |
 | `textSecondary` | `#475569` | Teks pendukung |
 | `textTertiary` | `#94A3B8` | Placeholder, label non-aktif |
+| surfaceMuted| #F1F5F9 | Wadah dalam kartu, area input |
+| surfaceMuted| #18233A |
+
 
 ### Mode Gelap
 | Token | Hex |
@@ -54,7 +57,7 @@
 Aturan: status **tidak boleh hanya dibedakan warna**; selalu sertakan teks (dan ikon bila perlu).
 
 ## 3. Tipografi
-Font: **Plus Jakarta Sans** (via `google_fonts`). Angka uang memakai tabular figures.
+Font: **Plus Jakarta Sans** (via `dibundel sebagai aset lokal di assets/fonts/`). Angka uang memakai tabular figures.
 
 | Gaya | Ukuran/Berat | Pemakaian |
 |---|---|---|

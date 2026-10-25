@@ -85,3 +85,13 @@
   - T0.3 [x] Selesai: Token warna, tipografi font lokal, spasi, radius, tema M3 terang/gelap + unit test lolos.
   - T0.4 [x] Selesai: 11 komponen bersama + preview visual + unit & widget test lolos.
   - T0.5 - T0.8 [ ] Belum selesai: Menunggu penyelesaian T0.1 dan T0.2.
+- 2026-10-25 (Audit Menyeluruh Kode vs TASKS.md):
+  - Status tugas terverifikasi:
+    - T0.1 [~] Sebagian (proyek Flutter Android siap, subfolder features, l10n, dan subfolder core lainnya belum dibuat).
+    - T0.2 [ ] Belum (package inti riverpod, go_router, drift, intl, uuid belum ditambahkan di pubspec.yaml).
+    - T0.3 [x] Selesai (token tema app_colors, app_text_styles, app_spacing, app_radius, app_theme terang & gelap, aset font lokal Plus Jakarta Sans).
+    - T0.4 [x] Selesai (11 komponen bersama + SyncIndicator, preview page, widget/unit test).
+    - T0.5 - T0.8 [ ] Belum dikerjakan.
+    - Fase 1 s/d Fase 5: [ ] Seluruhnya belum dikerjakan.
+  - Bukti verifikasi kualitas: `flutter analyze` 0 issues, `flutter test` lulus (13/13 test passed).
+
