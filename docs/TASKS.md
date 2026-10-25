@@ -12,7 +12,7 @@
 - [x] T0.5 Router + shell bottom navigation (5 tab, layar placeholder)
 - [x] T0.6 `AppDatabase` drift: semua tabel (owner_profile, properties, rooms, tenants, occupancies, charges, payments, reminders, app_settings) + `schemaVersion = 1` + test dasar
 - [x] T0.7 Utilitas: `formatRupiah`, format tanggal `id_ID`, generator UUID + unit test
-- [ ] T0.8 CI GitHub Actions (format, analyze, test)
+- [~] T0.8 CI GitHub Actions (format, analyze, test)
 
 ## Fase 1 — Kelola Kos & Daftar Penyewa
 **Kelola Kos (multi-lokasi)**
@@ -120,4 +120,9 @@
     - T0.8 [ ] Belum dikerjakan: Folder .github/workflows/ belum ada.
   - Hasil verifikasi otomatis: `flutter analyze` 0 issue, `flutter test` lulus (28/28 tests passed).
   - Sisa pekerjaan Fase 0: T0.8 (CI GitHub Actions).
+- 2026-10-25: T0.8 dikerjakan [~].
+  - Dibuat .github/workflows/ci.yml dengan alur checkout, setup flutter (stable, cache), flutter pub get, dart format check, build_runner, flutter analyze, dan flutter test. .gitignore dipastikan mengabaikan *.g.dart.
+  - File yang berubah: .github/workflows/ci.yml, docs/TASKS.md.
+  - Hasil uji lokal: format check bersih, analyze 0 issue, test lulus (28/28 tests passed).
+  - Status [~]: Menunggu verifikasi eksekusi workflow hijau di GitHub Actions pada push/PR.
 
