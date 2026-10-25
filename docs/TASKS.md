@@ -9,9 +9,9 @@
 - [x] T0.2 Tambah package inti (riverpod, go_router, drift, intl, uuid)
 - [x] T0.3 Token tema: `app_colors`, `app_text_styles`, `app_spacing`, `app_radius`, `app_theme` (terang & gelap)
 - [x] T0.4 Komponen bersama: `AppCard`, `StatusChip`, `PrimaryButton`, `SecondaryButton`, `AppTextField`, `EmptyState`, `ConfirmDialog`, `AppSnackbar`, `PropertySwitcher`, `SlotIndicator`, `RateTypeChip`
-- [ ] T0.5 Router + shell bottom navigation (5 tab, layar placeholder)
-- [ ] T0.6 `AppDatabase` drift: semua tabel (owner_profile, properties, rooms, tenants, occupancies, charges, payments, reminders, app_settings) + `schemaVersion = 1` + test dasar
-- [ ] T0.7 Utilitas: `formatRupiah`, format tanggal `id_ID`, generator UUID + unit test
+- [x] T0.5 Router + shell bottom navigation (5 tab, layar placeholder)
+- [x] T0.6 `AppDatabase` drift: semua tabel (owner_profile, properties, rooms, tenants, occupancies, charges, payments, reminders, app_settings) + `schemaVersion = 1` + test dasar
+- [x] T0.7 Utilitas: `formatRupiah`, format tanggal `id_ID`, generator UUID + unit test
 - [ ] T0.8 CI GitHub Actions (format, analyze, test)
 
 ## Fase 1 — Kelola Kos & Daftar Penyewa
@@ -100,4 +100,12 @@
   - File yang berubah: pubspec.yaml, pubspec.lock, 56 folder baru dengan .gitkeep.
   - Hasil uji: `dart format .` bersih, `flutter analyze` 0 issue, `flutter test` lulus (13/13 test passed).
   - Sisa pekerjaan: T0.5 (Router & shell bottom nav), T0.6 (Drift database), T0.7 (Utilitas), T0.8 (CI).
+- 2026-10-25: T0.5, T0.6, dan T0.7 selesai dikerjakan.
+  - T0.5 [x]: go_router dengan StatefulShellRoute bottom navigation 5 tab (Beranda, Penyewa, Kamar, Bayar, Lainnya) berbasis PlaceholderPage (EmptyState), rute debug /dev/preview untuk ThemePreviewPage, dan MaterialApp.router di app.dart.
+  - T0.6 [x]: Drift AppDatabase (9 tabel sesuai ARCHITECTURE.md bagian 4, UUID v4, UTC timestamp, uang integer Rupiah, soft delete deleted_at, unique index charges & rooms, schemaVersion = 1) ter-generate via build_runner dan lulus unit test in-memory.
+  - T0.7 [x]: Utilitas formatRupiah (Rp1.500.000 tanpa spasi), format tanggal id_ID (AppDateFormat), generator UUID v4, dan inisialisasi locale di main.dart lulus unit test.
+  - File yang berubah: lib/main.dart, lib/app.dart, test/widget_test.dart, lib/core/router/*, lib/core/database/*, lib/core/utils/*, test/core/database_test.dart, test/core/router_test.dart, test/core/utils_test.dart.
+  - Hasil analyze/test: `dart format .` bersih, `flutter analyze` 0 issue, `flutter test` lulus (28/28 tests passed).
+  - Langkah uji manual: Jalankan `flutter run`, uji perpindahan 5 tab pada bottom bar, periksa teks placeholder pada setiap tab, lalu navigasikan ke rute `/dev/preview` (pada mode debug) untuk memeriksa preview sistem desain dan tombol ganti tema.
+  - Sisa pekerjaan: T0.8 (CI GitHub Actions).
 
