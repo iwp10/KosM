@@ -108,4 +108,16 @@
   - Hasil analyze/test: `dart format .` bersih, `flutter analyze` 0 issue, `flutter test` lulus (28/28 tests passed).
   - Langkah uji manual: Jalankan `flutter run`, uji perpindahan 5 tab pada bottom bar, periksa teks placeholder pada setiap tab, lalu navigasikan ke rute `/dev/preview` (pada mode debug) untuk memeriksa preview sistem desain dan tombol ganti tema.
   - Sisa pekerjaan: T0.8 (CI GitHub Actions).
+- 2026-10-25 (Audit Fondasi T0.1 - T0.8):
+  - Status tugas terverifikasi terhadap kode:
+    - T0.1 [x] Selesai & terbukti: Struktur folder lengkap (lib/core/{router,database,utils,services,errors}, lib/l10n/, lib/features/ 10 modul).
+    - T0.2 [x] Selesai & terbukti: Package inti di pubspec.yaml (riverpod, go_router, drift, drift_flutter, path_provider, intl, uuid, flutter_localizations, dev: drift_dev, build_runner).
+    - T0.3 [x] Selesai & terbukti: Token tema terang/gelap di lib/core/theme/ + 4 suite di test/core/theme_test.dart lolos.
+    - T0.4 [x] Selesai & terbukti: 11 komponen bersama + SyncIndicator di lib/core/widgets/ + 6 suite di test/core/widgets_test.dart lolos.
+    - T0.5 [x] Selesai & terbukti: Shell bottom nav 5 tab di lib/core/router/ + widget test di test/core/router_test.dart & test/widget_test.dart lolos.
+    - T0.6 [x] Selesai & terbukti: Drift AppDatabase 9 tabel, schemaVersion = 1, unique index di lib/core/database/ + 5 test di test/core/database_test.dart lolos.
+    - T0.7 [x] Selesai & terbukti: Utilitas formatRupiah, AppDateFormat, UUID v4 di lib/core/utils/ + 8 test di test/core/utils_test.dart lolos.
+    - T0.8 [ ] Belum dikerjakan: Folder .github/workflows/ belum ada.
+  - Hasil verifikasi otomatis: `flutter analyze` 0 issue, `flutter test` lulus (28/28 tests passed).
+  - Sisa pekerjaan Fase 0: T0.8 (CI GitHub Actions).
 
