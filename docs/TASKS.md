@@ -1,7 +1,7 @@
 # TASKS.md — Daftar Tugas KosM
 
 > Agent wajib memperbarui centang setelah tugas selesai. Kerjakan **satu tugas per sesi**.
-> Format: `[ ]` belum · `[~]` sedang dikerjakan · `[x]` selesai.
+> Format: `[ ]` belum · `[~]` kode selesai tetapi menunggu uji di HP, atau baru sebagian · `[x]` selesai dan terbukti.
 > ID mengikuti `docs/prd.md` (v0.2).
 
 ## Fase 0 — Fondasi

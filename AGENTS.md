@@ -67,12 +67,15 @@ flutter run            # uji di HP/emulator
 - Operasi jaringan (Drive) hanya boleh berjalan di latar belakang dan gagal dengan tenang (coba lagi nanti).
 
 ## 7. Alur Kerja Setiap Tugas
-1. Baca `docs/TASKS.md`, pilih tugas yang diminta.
-2. **Buat rencana singkat dulu** (file yang akan dibuat/diubah) dan tunggu persetujuan.
-3. Kerjakan **satu tugas** per sesi; jangan menyentuh fitur lain.
-4. Jalankan `dart format .`, `flutter analyze`, `flutter test`.
-5. Perbarui centang di `docs/TASKS.md`.
-6. Beri ringkasan: apa yang dibuat, file yang berubah, cara mengujinya.
+1. Baca docs/TASKS.md, pilih tugas yang diminta.
+2. Buat rencana singkat dulu (file yang akan dibuat/diubah) dan tunggu persetujuan.
+3. Kerjakan satu tugas per sesi; jangan menyentuh fitur lain.
+4. Jalankan dart format ., flutter analyze, flutter test sampai bersih.
+5. Perbarui docs/TASKS.md: [x] hanya untuk tugas selesai yang terbukti lewat analyze/test; [~] jika kode selesai tetapi perlu uji manual di HP atau baru sebagian (tulis apa yang perlu diuji atau sisanya); [ ] untuk yang tidak dikerjakan. Jangan mencentang tugas di luar sesi ini.
+6. Tambah satu entri di "Catatan Sesi" pada docs/TASKS.md: tanggal, tugas, file yang berubah, hasil analyze/test, langkah uji manual, sisa pekerjaan.
+7. Jika implementasi menuntut penyimpangan dari docs/ARCHITECTURE.md, docs/DESIGN.md, atau docs/prd.md, berhenti dan minta persetujuan; setelah disetujui, perbarui dokumen terkait di sesi yang sama.
+8. Beri ringkasan akhir: apa yang dibuat, file yang berubah, cara mengujinya.
+9. Jangan commit atau push kecuali diminta.
 
 ## 8. Git
 - Cabang: `main` (stabil) ← `dev` ← `feat/<id>-<nama>` (mis. `feat/f1-daftar-penyewa`).
