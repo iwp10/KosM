@@ -5,8 +5,8 @@
 > ID mengikuti `docs/prd.md` (v0.2).
 
 ## Fase 0 — Fondasi
-- [~] T0.1 Buat proyek Flutter (Android), rapikan struktur folder sesuai ARCHITECTURE.md
-- [ ] T0.2 Tambah package inti (riverpod, go_router, drift, intl, uuid)
+- [x] T0.1 Buat proyek Flutter (Android), rapikan struktur folder sesuai ARCHITECTURE.md
+- [x] T0.2 Tambah package inti (riverpod, go_router, drift, intl, uuid)
 - [x] T0.3 Token tema: `app_colors`, `app_text_styles`, `app_spacing`, `app_radius`, `app_theme` (terang & gelap)
 - [x] T0.4 Komponen bersama: `AppCard`, `StatusChip`, `PrimaryButton`, `SecondaryButton`, `AppTextField`, `EmptyState`, `ConfirmDialog`, `AppSnackbar`, `PropertySwitcher`, `SlotIndicator`, `RateTypeChip`
 - [ ] T0.5 Router + shell bottom navigation (5 tab, layar placeholder)
@@ -94,4 +94,10 @@
     - T0.5 - T0.8 [ ] Belum dikerjakan.
     - Fase 1 s/d Fase 5: [ ] Seluruhnya belum dikerjakan.
   - Bukti verifikasi kualitas: `flutter analyze` 0 issues, `flutter test` lulus (13/13 test passed).
+- 2026-10-25: T0.1 dan T0.2 selesai dikerjakan.
+  - T0.1 [x]: Struktur folder lengkap dibuat persis sesuai docs/ARCHITECTURE.md bagian 3 (lib/core/{router,database,utils,services,errors}, lib/l10n, lib/features/{home,property,tenant,room,occupancy,payment,reminder,backup,settings,export}/{data,domain,presentation/{providers,pages,widgets}} dengan .gitkeep).
+  - T0.2 [x]: Package inti ditambahkan (flutter_riverpod, go_router, drift, drift_flutter, path_provider, intl, uuid, flutter_localizations, serta dev: drift_dev, build_runner).
+  - File yang berubah: pubspec.yaml, pubspec.lock, 56 folder baru dengan .gitkeep.
+  - Hasil uji: `dart format .` bersih, `flutter analyze` 0 issue, `flutter test` lulus (13/13 test passed).
+  - Sisa pekerjaan: T0.5 (Router & shell bottom nav), T0.6 (Drift database), T0.7 (Utilitas), T0.8 (CI).
 
