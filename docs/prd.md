@@ -78,11 +78,13 @@ Banyak pemilik kos masih mencatat secara manual (buku tulis, Excel, atau chat Wh
 | F1.1 | Daftar Semua Penyewa | Menampilkan semua penyewa (aktif dan sudah keluar) dalam bentuk daftar. |
 | F1.2 | Ringkasan Kos Sekilas | Kartu ringkasan di atas: jumlah penyewa aktif, kamar kosong/tersedia, tagihan belum lunas, untuk kos terpilih atau gabungan semua kos. |
 | F1.3 | Cari & Saring Penyewa | Pencarian berdasarkan nama/nomor kamar; filter status (aktif, keluar, menunggak). |
-| F1.4 | Detail & Kelola Penyewa* | Tambah, ubah, hapus penyewa; lihat profil (nama, nomor HP, kamar, tanggal masuk, catatan). |
+| F1.4 | Detail & Kelola Penyewa* | Tambah, ubah, hapus penyewa; lihat profil (nama, nomor HP, foto KTP/identitas opsional, kamar, tanggal masuk, catatan). |
 
 **Kriteria penerimaan:**
 - Penyewa baru dapat ditambahkan kurang dari 1 menit tanpa internet.
 - Pencarian menampilkan hasil seketika saat mengetik.
+- Foto KTP/identitas penyewa bersifat opsional. Jika diunggah, foto dikompresi (sisi terpanjang maks 1280 px, JPEG kualitas 80, target ukuran < 500 KB) dan disimpan di folder privat aplikasi (bukan galeri); database hanya menyimpan path relatif (`id_photo_path`).
+- Saat data penyewa dihapus, file foto identitas terkait ikut dihapus dari penyimpanan perangkat.
 
 ### 6.2 Data Kamar & Kos (Fase 2)
 
@@ -201,6 +203,7 @@ Banyak pemilik kos masih mencatat secara manual (buku tulis, Excel, atau chat Wh
 **Kriteria penerimaan:**
 - Ekspor berjalan tanpa internet.
 - Angka di Excel sama dengan angka di layar aplikasi.
+- Foto identitas/KTP TIDAK ikut diekspor ke file Excel (hanya data tekstual dan angka).
 
 ---
 
@@ -210,8 +213,8 @@ Banyak pemilik kos masih mencatat secara manual (buku tulis, Excel, atau chat Wh
 |---|---|
 | **Offline-first** | Semua operasi baca/tulis dilakukan ke database lokal terlebih dahulu. |
 | **Performa** | Buka aplikasi < 3 detik; daftar 100+ penyewa tetap lancar. |
-| **Keamanan** | Data lokal tidak dibagikan ke pihak ketiga; cadangan hanya ke Drive pemilik; koneksi memakai HTTPS. |
-| **Privasi** | Data penyewa (nama, HP) hanya untuk keperluan pengelolaan kos; mematuhi prinsip perlindungan data pribadi. |
+| **Keamanan** | Data lokal tidak dibagikan ke pihak ketiga; cadangan hanya ke Drive pemilik; koneksi memakai HTTPS. Data identitas sensitif; pertimbangkan kunci aplikasi (PIN/biometrik) sebagai peningkatan keamanan. |
+| **Privasi** | Data penyewa (nama, HP, foto identitas opsional) hanya untuk keperluan pengelolaan kos; mematuhi prinsip perlindungan data pribadi. Foto disimpan di direktori privat aplikasi (terisolasi dari galeri). |
 | **Keandalan** | Data tidak hilang saat aplikasi tertutup mendadak; sinkronisasi dapat dilanjutkan. |
 | **Kegunaan** | Antarmuka sederhana, teks Bahasa Indonesia, alur utama maksimal 3 ketuk. |
 | **Kompatibilitas** | Android 8.0+ (disesuaikan saat implementasi). |
@@ -229,7 +232,7 @@ Banyak pemilik kos masih mencatat secara manual (buku tulis, Excel, atau chat Wh
 - **Pemilik** (id, nama, kontak)
 - **Kos** (id, nama, alamat, kontak): pemilik bisa punya lebih dari satu
 - **Kamar** (id, kos_id, nomor, kapasitas, tarif_acuan, fasilitas, sedang_perbaikan)
-- **Penyewa** (id, nama, no_hp, catatan)
+- **Penyewa** (id, nama, no_hp, id_photo_path [nullable, path relatif], catatan)
 - **Hunian** (id, penyewa_id, kamar_id, tanggal_masuk, tanggal_selesai_rencana, tanggal_keluar, jenis_tarif [harian|mingguan|bulanan], harga_per_satuan, lama_sewa, jatuh_tempo, status)
 - **Tagihan** (id, hunian_id, jenis [sewa|listrik|air|denda|lainnya], keterangan, nominal, periode_mulai, periode_selesai, jatuh_tempo)
 - **Pembayaran** (id, tagihan_id, nominal, tanggal, metode, catatan)
@@ -270,6 +273,7 @@ Status kamar, sisa slot, dan status tagihan (lunas/belum bayar/menunggak) **dihi
 | Penghapusan ikut terhapus di cadangan tidak disengaja | Dialog konfirmasi dan opsi hapus lokal saja. |
 | Tagihan otomatis ganda atau terlewat | Pembuatan tagihan idempoten (kunci unik per hunian+periode), dijalankan saat aplikasi dibuka dan harian, dengan unit test. |
 | Slot kamar dan status tidak konsisten | Status dan sisa slot dihitung dari data hunian (turunan), bukan disimpan. |
+| Data identitas & foto KTP sensitif jika perangkat diakses pihak lain | Foto disimpan di folder privat aplikasi (bukan galeri); pertimbangkan kunci aplikasi (PIN/biometrik) sebagai peningkatan. |
 
 ## 13. Rencana Rilis
 
@@ -290,6 +294,7 @@ Status kamar, sisa slot, dan status tagihan (lunas/belum bayar/menunggak) **dihi
 | 3 | Biaya tambahan | Ada: listrik, air, denda, dan lainnya. |
 | 4 | Ekspor laporan | Excel (.xlsx). |
 | 5 | Banyak kos | Didukung; pemilik punya 2 kos di lokasi berbeda. |
+| 6 | Foto KTP/identitas penyewa | Tetap dipakai (opsional). Disimpan di folder privat aplikasi (bukan galeri), dikompres (sisi terpanjang maks 1280 px, JPEG kualitas 80, target < 500 KB). Database hanya menyimpan path relatif (`id_photo_path`). Saat penyewa dihapus, file foto ikut dihapus dari penyimpanan. Foto TIDAK ikut ekspor Excel. |
 
 ### Pertanyaan baru (asumsi sementara dipakai sampai diputuskan)
 1. Kamar berpenghuni banyak: tagihan **per penghuni** atau **per kamar**? *(asumsi: per penghuni)*
@@ -297,6 +302,7 @@ Status kamar, sisa slot, dan status tagihan (lunas/belum bayar/menunggak) **dihi
 3. Listrik/air: nominal diisi manual atau dihitung dari meteran? *(asumsi: manual)*
 4. Sewa harian/mingguan: jatuh tempo kapan? *(asumsi: pada tanggal masuk, bayar di muka)*
 5. Apakah satu penyewa boleh tinggal di kos berbeda sekaligus? *(asumsi: boleh, lewat hunian terpisah)*
+6. Apakah foto identitas ikut cadangan Google Drive? *(keputusan terbuka; sementara tidak ikut; dampak: foto hilang saat pulihkan di HP baru)*
 
 ---
 

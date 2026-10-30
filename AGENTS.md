@@ -102,6 +102,7 @@ flutter run            # uji di HP/emulator
 | Jatuh tempo | `dueDay` / `dueDate` |
 | Kosong / Terisi Sebagian / Penuh / Perbaikan | `vacant` / `partial` / `full` / `maintenance` |
 | Lunas / Belum bayar / Menunggak | `paid` / `unpaid` / `overdue` |
+| Foto KTP / Identitas | `idPhoto` / `id_photo_path` |
 
 ## 10. Yang DILARANG
 - Mengubah stack, struktur folder, atau skema database tanpa izin.
