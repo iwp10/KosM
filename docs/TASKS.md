@@ -12,7 +12,7 @@
 - [x] T0.5 Router + shell bottom navigation (5 tab, layar placeholder)
 - [x] T0.6 `AppDatabase` drift: semua tabel (owner_profile, properties, rooms, tenants, occupancies, charges, payments, reminders, app_settings) + `schemaVersion = 1` + test dasar
 - [x] T0.7 Utilitas: `formatRupiah`, format tanggal `id_ID`, generator UUID + unit test
-- [~] T0.8 CI GitHub Actions (format, analyze, test)
+- [x] T0.8 CI GitHub Actions (format, analyze, test)
 
 ## Fase 1 — Kelola Kos & Daftar Penyewa
 **Kelola Kos (multi-lokasi)**
@@ -25,6 +25,8 @@
 - [ ] F1.1 Daftar semua penyewa (data + UI + 4 kondisi layar)
 - [ ] F1.3 Cari & saring penyewa
 - [ ] F1.4 Tambah/ubah/hapus penyewa + detail penyewa
+- [ ] F1.4a Kolom id_photo_path di tabel tenants (schemaVersion 2 + migrasi + test)
+- [ ] F1.4b Ambil/pilih foto, kompres, simpan, hapus
 - [ ] F1.2 Ringkasan kos sekilas di Beranda (butuh kamar/tagihan; boleh sementara 0)
 
 ## Fase 2 — Kamar, Masuk/Keluar, Tagihan & Pembayaran
@@ -125,4 +127,10 @@
   - File yang berubah: .github/workflows/ci.yml, docs/TASKS.md.
   - Hasil uji lokal: format check bersih, analyze 0 issue, test lulus (28/28 tests passed).
   - Status [~]: Menunggu verifikasi eksekusi workflow hijau di GitHub Actions pada push/PR.
+- 2026-10-30: Penyesuaian spesifikasi & dokumentasi untuk keputusan baru pemakaian foto KTP/identitas penyewa (opsional).
+  - Tugas: Memperbarui PRD, ARCHITECTURE, TASKS, dan AGENTS (glosarium) agar konsisten terkait pemakaian foto KTP/identitas (opsional), penambahan kolom `id_photo_path` (nullable, path relatif), penyimpanan terkompresi di folder privat aplikasi, penghapusan file saat penyewa dihapus, foto tidak ikut ekspor Excel, status cadangan Drive (keputusan terbuka & dampaknya), risiko data sensitif & peningkatan PIN/biometrik, serta penambahan tugas F1.4a dan F1.4b. Package kamera/galeri belum ditambahkan pada sesi ini.
+  - File yang berubah: AGENTS.md, docs/prd.md, docs/ARCHITECTURE.md, docs/TASKS.md.
+  - Hasil analyze/test: Tidak ada kode aplikasi yang diubah; `flutter analyze` 0 issue, `flutter test` lulus (28/28 tests passed).
+  - Langkah uji manual: Verifikasi konsistensi dokumen teknis dan penamaan glosarium.
+  - Sisa pekerjaan: Menunggu persetujuan perubahan dokumen sebelum melanjutkan ke implementasi tugas berikutnya.
 

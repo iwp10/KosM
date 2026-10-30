@@ -78,7 +78,7 @@ Aturan umum: `id` = UUID v4 (text), waktu = UTC, uang = integer Rupiah, semua ta
 `id, property_id → properties, number (unik per property), capacity (int ≥ 1), reference_rate_type, reference_rate (int, opsional), facilities, is_under_maintenance (bool)`
 
 **tenants** (global, tidak terikat satu kos)
-`id, name, phone, note`
+`id, name, phone, id_photo_path (nullable), note`
 
 **occupancies** (penyewa menempati kamar; satu kamar bisa punya beberapa yang aktif)
 `id, tenant_id → tenants, room_id → rooms, start_date, planned_end_date (nullable), actual_end_date (null = masih tinggal), rate_type (daily | weekly | monthly), rate_amount (int, harga per satuan, ditetapkan pemilik), duration_units (int, nullable; lama sewa untuk harian/mingguan), due_day (1–31, hanya bulanan), status (active | ended)`
@@ -112,6 +112,13 @@ Cicilan = beberapa pembayaran pada tagihan yang sama.
 - **Perpanjang sewa**: menambah `duration_units`/`planned_end_date` dan membuat tagihan baru.
 - **Pindah kamar**: occupancy lama diakhiri, occupancy baru dibuat; tagihan belum lunas tetap menempel di occupancy lama.
 - Harus **idempoten**: dijalankan berulang tidak boleh membuat tagihan ganda (dijaga indeks unik + test).
+
+### Penyimpanan Foto Identitas / KTP
+- Foto KTP/identitas bersifat **opsional**.
+- Disimpan di **folder privat aplikasi** (bukan galeri publik perangkat), sehingga terisolasi dan tidak muncul di aplikasi galeri umum.
+- **Kompresi**: sisi terpanjang maksimal 1280 px, JPEG kualitas 80, target ukuran di bawah 500 KB.
+- Database **hanya menyimpan path relatif** (mis. `tenants/photos/<uuid>.jpg`), bukan path absolut, agar tidak rusak jika path direktori internal aplikasi berubah.
+- **Siklus hidup file**: saat penyewa dihapus, file fotonya ikut dihapus dari penyimpanan.
 
 ## 5. State Management (Riverpod)
 - `Provider` untuk repository & database.
@@ -148,6 +155,10 @@ Karena aplikasi untuk satu pemilik tanpa backend, **jangan** membuat sinkronisas
 
 Tombol "Cadangkan sekarang" memicu langkah 3 secara manual.
 
+> [!NOTE] Keputusan Terbuka: Cadangan Foto Identitas
+> Cadangan snapshot saat ini hanya mencakup database SQLite (`.db.gz`). Apakah foto ikut cadangan Drive ditandai sebagai **keputusan terbuka (sementara tidak ikut)**.
+> **Dampak:** foto hilang saat pulihkan di HP baru.
+
 ## 8. Pengingat (Notifikasi Lokal)
 - `flutter_local_notifications` + `timezone` (zona `Asia/Jakarta` atau zona perangkat).
 - Jadwal dibuat/diperbarui setiap kali ada occupancy/pembayaran berubah (hapus jadwal lama, buat ulang).
@@ -161,6 +172,7 @@ Tombol "Cadangkan sekarang" memicu langkah 3 secara manual.
 - Filter: kos (satu/semua) dan rentang tanggal. Angka harus sama dengan angka di layar (pakai query/use case yang sama).
 - Berkas ditulis ke direktori sementara lalu dibagikan lewat share sheet.
 - Proses pembuatan file besar dijalankan di isolate agar UI tidak macet.
+- Foto TIDAK ikut ekspor Excel.
 
 ## 9. Penanganan Error
 - Repository mengembalikan `Result<T>` (sukses/gagal) atau melempar `AppException` terpetakan.
@@ -169,6 +181,7 @@ Tombol "Cadangkan sekarang" memicu langkah 3 secara manual.
 
 ## 10. Keamanan & Privasi
 - Data hanya di perangkat dan di Drive milik pengguna.
+- Data identitas sensitif; foto KTP disimpan di folder privat aplikasi (bukan galeri); pertimbangkan kunci aplikasi (PIN/biometrik) sebagai peningkatan.
 - Tidak ada analitik pihak ketiga.
 - Rahasia (keystore, kunci) tidak masuk Git.
 - Pertimbangkan penguncian aplikasi (PIN/biometrik) sebagai peningkatan setelah Fase 4.
@@ -184,6 +197,8 @@ Tombol "Cadangkan sekarang" memicu langkah 3 secara manual.
 ## 12. Migrasi Database
 - `schemaVersion` dinaikkan setiap perubahan tabel; tulis `onUpgrade` dan test migrasi.
 - Jangan ubah tabel yang sudah dirilis tanpa migrasi.
+- Versi 1: skema awal 9 tabel.
+- Versi 2: penambahan kolom `id_photo_path` (nullable) pada tabel `tenants` (tugas F1.4a).
 
 ## 13. Keputusan Produk
 Sudah diputuskan (lihat `docs/prd.md` bagian 14):
@@ -192,9 +207,11 @@ Sudah diputuskan (lihat `docs/prd.md` bagian 14):
 - [x] Biaya tambahan (listrik, air, denda, lainnya) lewat tabel `charges`
 - [x] Ekspor Excel (.xlsx)
 - [x] Multi-kos (`properties`)
+- [x] Foto KTP/identitas penyewa tetap dipakai (opsional): kolom `id_photo_path` (nullable, path relatif), disimpan di folder privat aplikasi (bukan galeri), dikompres (maks 1280 px, JPEG kualitas 80, < 500 KB), file foto dihapus saat penyewa dihapus, foto TIDAK ikut ekspor Excel
 
 Masih terbuka (asumsi sementara dipakai):
 - [ ] Tagihan per penghuni atau per kamar? *(asumsi: per penghuni)*
 - [ ] Denda otomatis atau manual? *(asumsi: manual)*
 - [ ] Listrik/air manual atau dari meteran? *(asumsi: manual)*
 - [ ] Jatuh tempo sewa harian/mingguan? *(asumsi: tanggal masuk)*
+- [ ] Apakah foto ikut cadangan Drive? *(keputusan terbuka; sementara tidak ikut; dampak: foto hilang saat pulihkan di HP baru)*
