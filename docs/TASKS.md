@@ -16,10 +16,10 @@
 
 ## Fase 1 — Kelola Kos & Daftar Penyewa
 **Kelola Kos (multi-lokasi)**
-- [ ] F9.1 Daftar kos + onboarding membuat kos pertama
-- [ ] F9.2 Tambah/ubah/hapus kos (tolak hapus jika masih ada penghuni aktif)
-- [ ] F9.3 Pilih kos aktif (`PropertySwitcher`, simpan `active_property_id`)
-- [ ] F9.4 Tampilan gabungan "Semua Kos"
+- [~] F9.1 Daftar kos + onboarding membuat kos pertama
+- [~] F9.2 Tambah/ubah/hapus kos (tolak hapus jika masih ada penghuni aktif)
+- [~] F9.3 Pilih kos aktif (`PropertySwitcher`, simpan `active_property_id`)
+- [~] F9.4 Tampilan gabungan "Semua Kos"
 
 **Daftar Penyewa**
 - [ ] F1.1 Daftar semua penyewa (data + UI + 4 kondisi layar)
@@ -134,3 +134,45 @@
   - Langkah uji manual: Verifikasi konsistensi dokumen teknis dan penamaan glosarium.
   - Sisa pekerjaan: Menunggu persetujuan perubahan dokumen sebelum melanjutkan ke implementasi tugas berikutnya.
 
+- 2026-10-31: F9 (F9.1–F9.4) — Kelola Kos (multi-lokasi) [~].
+  - Deskripsi Tugas: Implementasi penuh modul kelola kos multi-lokasi (data & domain di `lib/features/property/`, activePropertyProvider dengan penyimpanan ke app_settings & fallback otomatis, routing onboarding dan shell berbasis kos, layar daftar kos, form tambah/ubah, dialog hapus aman terhubung cascade soft delete kamar, serta menu kelola kos pada tab Lainnya).
+  - File yang berubah:
+    - `lib/core/errors/app_exception.dart` & `lib/core/errors/errors.dart`
+    - `lib/core/strings/app_strings.dart` & `lib/core/strings/strings.dart`
+    - `lib/core/database/app_database.dart`
+    - `lib/core/router/app_router.dart` & `lib/core/router/placeholder_page.dart`
+    - `lib/features/property/domain/property.dart`
+    - `lib/features/property/domain/property_repository.dart`
+    - `lib/features/property/data/property_dao.dart`
+    - `lib/features/property/data/property_repository_impl.dart`
+    - `lib/features/property/presentation/providers/property_providers.dart`
+    - `lib/features/property/presentation/widgets/property_item_card.dart`
+    - `lib/features/property/presentation/pages/property_list_page.dart`
+    - `lib/features/property/presentation/pages/property_form_page.dart`
+    - `lib/features/property/presentation/pages/onboarding_page.dart`
+    - `lib/features/settings/presentation/pages/more_page.dart`
+    - `test/helpers/pump_helpers.dart`
+    - `test/core/router_test.dart`
+    - `test/widget_test.dart`
+    - `test/features/property/active_property_provider_test.dart`
+    - `test/features/property/property_repository_test.dart`
+    - `test/features/property/property_widgets_test.dart`
+    - `docs/TASKS.md`
+  - Hasil Uji Otomatis:
+    - `dart format .`: Bersih (seluruh file sesuai standar).
+    - `flutter analyze`: 0 issues (bersih).
+    - `flutter test`: 48/48 tests passed (seluruh test suite proyek lulus 100%).
+  - Akar Masalah Tiap Kelompok Uji:
+    1. Timer Pending pada Widget Test & Router Test: Drift stream query (`select().watch()`) menjadwalkan timer mikro durasi nol (`Timer(Duration.zero)`) saat `StreamQueryStore.markAsClosed()` dieksekusi ketika `ProviderScope` di-unmount di akhir `testWidgets`. Flutter test memverifikasi `!timersPending` tepat setelah test selesai. Solusi: Dibuat helper `disposeApp(tester)` di `test/helpers/pump_helpers.dart` (`await tester.pumpWidget(const SizedBox.shrink()); await tester.pump(Duration.zero);`) untuk meng-unmount tree dan mengosongkan antrean timer sebelum test berakhir, serta menutup database in-memory secara tertib lewat `addTearDown(() async => await db.close())`.
+    2. Hit-Test Warning & Elemen di Luar Layar pada OnboardingPage Test: Viewport default test adalah 800x600, sedangkan form onboarding membutuhkan tinggi ~616px sehingga tombol submit berada di bawah batas pandang. Solusi: Dibuat helper `setPhoneScreen(tester)` (400x900, DPR 1.0, direset otomatis di addTearDown) dan pemanggilan `tester.ensureVisible(...)` sebelum melakukan interaksi tap.
+    3. ActivePropertyNotifier Timeout, Rebuild Loop, & Bug 'prop-1':
+       - Timeout & Rebuild Loop: Disebabkan oleh penggunaan `ref.watch(propertiesStreamProvider)` di dalam `ActivePropertyNotifier.build()` yang menahan notifier dalam `AsyncLoading` dan memicu rebuild berantai saat stream drift memancarkan pembaruan. Solusi: `build()` diubah membaca data sekali lewat `PropertyRepository` (`readActivePropertyId()` dan `getAll()`).
+       - Bug 'prop-1': `setActiveProperty` sebelumnya tidak menunggu `build()` selesai (`await future;`), sehingga jika `build()` awal selesai setelah mutasi atau saat `savedId` masih kosong/null, `build()` mengembalikan `properties.first.id` ('prop-1') dan menimpa pilihan pengguna ('all'). Solusi: Memanggil `await future;` sebelum mutasi, menyimpan ke repository terlebih dahulu, dan memvalidasi `savedId == 'all'` agar nilai 'all' selalu dipertahankan bahkan saat membuka ulang aplikasi.
+       - Fallback Terpusat: Dibuat metode terpusat `deleteProperty(id)` di notifier (memanggil `softDelete(id)` lalu `handlePropertyDeleted(id)`); jika softDelete ditolak (`PropertyHasActiveOccupanciesException`), `handlePropertyDeleted` tidak dipanggil dan kos aktif tetap bertahan. Jika kos terakhir dihapus, aplikasi otomatis kembali ke onboarding (`/onboarding`), dan kos baru yang didaftarkan langsung menjadi kos aktif.
+  - Langkah Uji Manual di HP (untuk verifikasi pengguna sebelum mengubah [~] menjadi [x]):
+    1. Onboarding tidak berkedip: Pastikan saat aplikasi dibuka dan kos sudah ada, aplikasi langsung masuk ke Beranda tanpa menampilkan layar form onboarding sekilas.
+    2. Buat kos kedua: Masuk ke tab Lainnya -> Kelola Kos -> Tambah Kos ("Kos Mawar"), simpan dan pastikan muncul di daftar.
+    3. Ganti kos & persistensi: Ganti kos aktif lewat `PropertySwitcher` di AppBar (pilih Kos 1, Kos 2, dan "Semua Kos"). Tutup aplikasi sepenuhnya lalu buka kembali: kos aktif yang dipilih atau "Semua Kos" harus tetap bertahan.
+    4. Ubah kos: Edit nama/alamat/kontak kos di Kelola Kos dan verifikasi perubahan tercermin di daftar dan di PropertySwitcher.
+    5. Hapus kos: Hapus kos yang sedang aktif, pastikan kos aktif otomatis beralih ke kos lain yang tersisa. Hapus seluruh kos sampai habis: pastikan aplikasi otomatis kembali ke layar Onboarding, dan setelah kos baru dibuat, kos tersebut otomatis menjadi kos aktif.
+    6. Mode pesawat (Offline): Matikan Wi-Fi dan data seluler; pastikan seluruh alur onboarding, penambahan, pengubahan, pemilihan, dan penghapusan kos bekerja lancar tanpa kendala jaringan.

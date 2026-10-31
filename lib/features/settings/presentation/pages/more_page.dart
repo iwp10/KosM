@@ -152,10 +152,13 @@ class MorePage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        title,
-                        style: AppTextStyles.heading.copyWith(
-                          color: kosM.textSecondary,
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: AppTextStyles.heading.copyWith(
+                            color: kosM.textSecondary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),

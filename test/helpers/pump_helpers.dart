@@ -18,4 +18,3 @@ void setPhoneScreen(WidgetTester tester) {
     tester.view.resetDevicePixelRatio();
   });
 }
-

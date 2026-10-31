@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kosm/core/database/database.dart';
 import 'package:kosm/core/theme/theme.dart';
 import 'package:kosm/features/property/data/property_dao.dart';
@@ -11,21 +12,40 @@ import 'package:kosm/features/property/presentation/pages/onboarding_page.dart';
 import 'package:kosm/features/property/presentation/pages/property_form_page.dart';
 import 'package:kosm/features/property/presentation/pages/property_list_page.dart';
 
+import '../../helpers/pump_helpers.dart';
+
 void main() {
   late AppDatabase db;
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
+    addTearDown(() async {
+      await db.close();
+    });
   });
 
-  tearDown(() async {
-    await db.close();
-  });
+  Widget wrapWithTheme(Widget child) {
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(path: '/', builder: (_, _) => child),
+        GoRoute(
+          path: '/home',
+          builder: (_, _) => const Scaffold(body: Text('Home Page')),
+        ),
+        GoRoute(
+          path: '/more/properties/add',
+          builder: (_, _) => const Scaffold(body: Text('Add Property Page')),
+        ),
+      ],
+    );
 
-  Widget wrapWithTheme(Widget child, [List<dynamic>? overrides]) {
     return ProviderScope(
       overrides: [appDatabaseProvider.overrideWithValue(db)],
-      child: MaterialApp(theme: AppTheme.lightTheme, home: child),
+      child: MaterialApp.router(
+        theme: AppTheme.lightTheme,
+        routerConfig: router,
+      ),
     );
   }
 
@@ -35,6 +55,8 @@ void main() {
     testWidgets('OnboardingPage renders form and validates name', (
       tester,
     ) async {
+      setPhoneScreen(tester);
+
       await tester.pumpWidget(wrapWithTheme(const OnboardingPage()));
       await tester.pumpAndSettle();
 
@@ -42,6 +64,10 @@ void main() {
       expect(find.text('Selamat Datang di KosM'), findsOneWidget);
       expect(find.text('Simpan & Mulai Kelola'), findsOneWidget);
       expect(find.text('Nama Kos'), findsOneWidget);
+
+      // Ensure button is visible before tap
+      await tester.ensureVisible(find.text('Simpan & Mulai Kelola'));
+      await tester.pumpAndSettle();
 
       // Tap submit with empty name
       await tester.tap(find.text('Simpan & Mulai Kelola'));
@@ -51,10 +77,10 @@ void main() {
       expect(find.text('Nama kos wajib diisi'), findsOneWidget);
 
       // Enter name and submit
-      await tester.enterText(
-        find.widgetWithText(TextField, ''),
-        'Kos Melati Indah',
-      );
+      final nameField = find.byType(TextField).first;
+      await tester.enterText(nameField, 'Kos Melati Indah');
+      await tester.ensureVisible(find.text('Simpan & Mulai Kelola'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Simpan & Mulai Kelola'));
       await tester.pumpAndSettle();
 
@@ -62,21 +88,29 @@ void main() {
       final props = await db.select(db.properties).get();
       expect(props.length, 1);
       expect(props.first.name, 'Kos Melati Indah');
+
+      await disposeApp(tester);
     });
 
     testWidgets('PropertyListPage shows empty state when no properties exist', (
       tester,
     ) async {
+      setPhoneScreen(tester);
+
       await tester.pumpWidget(wrapWithTheme(const PropertyListPage()));
       await tester.pumpAndSettle();
 
       expect(find.text('Belum Ada Kos'), findsOneWidget);
       expect(find.text('Tambah Kos'), findsWidgets);
+
+      await disposeApp(tester);
     });
 
     testWidgets(
       'PropertyListPage shows list of properties and handles delete dialog',
       (tester) async {
+        setPhoneScreen(tester);
+
         // Seed a property
         final prop = Property(
           id: 'prop-1',
@@ -115,10 +149,14 @@ void main() {
 
         // Property still exists
         expect(find.text('Kos Graha Melati'), findsOneWidget);
+
+        await disposeApp(tester);
       },
     );
 
     testWidgets('PropertyFormPage creates property on submit', (tester) async {
+      setPhoneScreen(tester);
+
       await tester.pumpWidget(wrapWithTheme(const PropertyFormPage()));
       await tester.pumpAndSettle();
 
@@ -138,6 +176,8 @@ void main() {
       expect(props.first.name, 'Kos Mawar');
       expect(props.first.address, 'Jl. Mawar No. 5');
       expect(props.first.contact, '08123456789');
+
+      await disposeApp(tester);
     });
   });
 }

@@ -6,15 +6,16 @@ import 'package:kosm/app.dart';
 import 'package:kosm/core/database/database.dart';
 import 'package:kosm/core/strings/strings.dart';
 
+import '../helpers/pump_helpers.dart';
+
 void main() {
   late AppDatabase db;
 
   setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
-  });
-
-  tearDown(() async {
-    await db.close();
+    addTearDown(() async {
+      await db.close();
+    });
   });
 
   Widget buildApp() {
@@ -27,6 +28,8 @@ void main() {
   testWidgets(
     'Router redirects to /onboarding when database has no properties',
     (tester) async {
+      setPhoneScreen(tester);
+
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
@@ -34,12 +37,16 @@ void main() {
       expect(find.text('Selamat Datang di KosM'), findsOneWidget);
       expect(find.text('Simpan & Mulai Kelola'), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
+
+      await disposeApp(tester);
     },
   );
 
   testWidgets(
     'Router shell bottom navigation switches tabs correctly when property exists',
     (tester) async {
+      setPhoneScreen(tester);
+
       // Seed a property so shell renders on /home
       final now = DateTime.now().toUtc();
       await db
@@ -106,6 +113,8 @@ void main() {
       expect(find.text(AppStrings.moreMenuTitle), findsAtLeastNWidgets(1));
       expect(find.text(AppStrings.moreMenuDesc), findsOneWidget);
       expect(find.text(AppStrings.manageProperties), findsOneWidget);
+
+      await disposeApp(tester);
     },
   );
 }

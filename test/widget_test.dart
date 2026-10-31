@@ -6,11 +6,17 @@ import 'package:kosm/app.dart';
 import 'package:kosm/core/database/database.dart';
 import 'package:kosm/core/router/router.dart';
 
+import 'helpers/pump_helpers.dart';
+
 void main() {
   late AppDatabase db;
 
   setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
+    addTearDown(() async {
+      await db.close();
+    });
+
     // Seed a property so shell renders on /home without redirecting to onboarding
     final now = DateTime.now().toUtc();
     await db
@@ -27,10 +33,6 @@ void main() {
         );
   });
 
-  tearDown(() async {
-    await db.close();
-  });
-
   Widget buildApp() {
     return ProviderScope(
       overrides: [appDatabaseProvider.overrideWithValue(db)],
@@ -41,6 +43,8 @@ void main() {
   testWidgets('KosMApp smoke test renders shell with 5 tabs', (
     WidgetTester tester,
   ) async {
+    setPhoneScreen(tester);
+
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
@@ -51,6 +55,8 @@ void main() {
       find.text('Ringkasan kos akan ditampilkan di sini.'),
       findsOneWidget,
     );
+
+    await disposeApp(tester);
   });
 
   testWidgets('KosMApp debug route /dev/preview renders visual preview page', (
@@ -73,5 +79,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Simpan Data Penyewa'), findsOneWidget);
+
+    await disposeApp(tester);
   });
 }
