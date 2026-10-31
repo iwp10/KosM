@@ -1,14 +1,47 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kosm/app.dart';
+import 'package:kosm/core/database/database.dart';
 import 'package:kosm/core/router/router.dart';
 
 void main() {
+  late AppDatabase db;
+
+  setUp(() async {
+    db = AppDatabase(NativeDatabase.memory());
+    // Seed a property so shell renders on /home without redirecting to onboarding
+    final now = DateTime.now().toUtc();
+    await db
+        .into(db.properties)
+        .insert(
+          PropertiesCompanion.insert(
+            id: 'prop-1',
+            name: 'Kos Graha Melati',
+            address: 'Jl. Melati No. 12',
+            contact: '08123456789',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+  });
+
+  tearDown(() async {
+    await db.close();
+  });
+
+  Widget buildApp() {
+    return ProviderScope(
+      overrides: [appDatabaseProvider.overrideWithValue(db)],
+      child: const KosMApp(),
+    );
+  }
+
   testWidgets('KosMApp smoke test renders shell with 5 tabs', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: KosMApp()));
+    await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
     // Verify initial route /home renders Beranda placeholder and bottom nav
@@ -23,7 +56,7 @@ void main() {
   testWidgets('KosMApp debug route /dev/preview renders visual preview page', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: KosMApp()));
+    await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
     // Navigate to debug preview route
