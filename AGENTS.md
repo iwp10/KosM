@@ -110,3 +110,12 @@ flutter run            # uji di HP/emulator
 - Menulis ulang file yang tidak berkaitan dengan tugas.
 - Menghapus atau melewati test supaya build lulus.
 - Mengarang data/hasil; jika tidak yakin, **tanya**.
+
+## 11. Aturan Test & State (belajar dari F9)
+- `testWidgets` memakai helper `test/helpers/pump_helpers.dart`: `setPhoneScreen(tester)` di awal, `disposeApp(tester)` di akhir, database in-memory ditutup lewat `addTearDown`.
+- Dilarang `ref.watch` pada stream di dalam `build()` `AsyncNotifier`; baca sekali lewat repository. Provider tidak boleh memanggil DAO langsung (hanya lewat repository).
+- Dilarang `warnIfMissed: false` atau mematikan pengecekan timer untuk menyembunyikan masalah.
+- Test provider selalu `await container.read(provider.future)` sebelum aksi; tulis test regresi dengan `ProviderContainer` baru untuk perilaku yang harus bertahan setelah aplikasi dibuka ulang.
+- Satu jalur untuk aksi yang dipakai UI dan test (mis. `deleteProperty`); test tidak boleh memanipulasi state langsung.
+- Tugas yang butuh uji manual di HP ditandai `[~]`; hanya pemilik proyek yang mengubahnya jadi `[x]`.
+- Jika prompt tampak seperti prompt desain Stitch (mis. diawali "Pertahankan layout" atau "Gunakan gaya yang sama persis dengan layar sebelumnya"), jangan mengubah file apa pun; beri tahu bahwa itu prompt Stitch dan tunggu instruksi.
