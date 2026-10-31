@@ -32,3 +32,6 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   ref.onDispose(db.close);
   return db;
 });
+
+/// Alias provider for [appDatabaseProvider] to conform to ARCHITECTURE.md conventions.
+final databaseProvider = appDatabaseProvider;
