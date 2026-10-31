@@ -111,8 +111,8 @@ class PropertyListPage extends ConsumerWidget {
                   if (confirmed == true && context.mounted) {
                     try {
                       await ref
-                          .read(propertyRepositoryProvider)
-                          .softDelete(property.id);
+                          .read(activePropertyProvider.notifier)
+                          .deleteProperty(property.id);
 
                       if (context.mounted) {
                         AppSnackbar.show(

@@ -17,11 +17,14 @@ class PropertyDao {
         .watch();
   }
 
-  /// Gets all non-deleted properties.
+  /// Gets all non-deleted properties ordered by createdAt ascending, then id ascending.
   Future<List<PropertyData>> getAllProperties() {
     return (_db.select(_db.properties)
           ..where((t) => t.deletedAt.isNull())
-          ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+          ..orderBy([
+            (t) => OrderingTerm.asc(t.createdAt),
+            (t) => OrderingTerm.asc(t.id),
+          ]))
         .get();
   }
 
