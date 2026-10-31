@@ -105,6 +105,23 @@ Cicilan = beberapa pembayaran pada tagihan yang sama.
 - **Status tagihan**: `paid` jika total pembayaran ≥ `amount`; `unpaid` jika kurang dan `due_date` belum lewat; `overdue` jika kurang dan `due_date` sudah lewat. Penyewa "menunggak" jika punya tagihan `overdue`.
 - **Filter kos**: semua query kamar/hunian/tagihan/pembayaran difilter lewat `rooms.property_id = active_property_id`, kecuali nilainya `all`.
 
+### Visibilitas Penyewa per Kos (`propertyFilter`)
+- **Mode Semua Kos (`'all'` atau `null`)**: Menampilkan seluruh penyewa yang belum di-soft-delete.
+- **Filter Kos Tertentu (`property_id`)**:
+  - **Penyewa tanpa hunian**: Tampil di **SEMUA kos** (agar pemilik dapat memilih penyewa ini saat mencatat hunian baru di kos mana pun).
+  - **Penyewa dengan hunian**: Tampil di kos tempat kamarnya berada, baik status huniannya **aktif maupun selesai** (`status == 'active'` atau `status == 'ended'`), asalkan hunian dan kamar belum di-soft-delete.
+  - **Penyewa dengan hunian di beberapa kos**: Tampil di masing-masing kos tersebut.
+  - **Kamar/Kos yang di-soft-delete**: Penyewa yang HANYA memiliki riwayat hunian pada kamar/kos yang telah di-soft-delete tidak tampil pada filter kos tertentu, namun tetap tampil pada mode Semua Kos (`'all'`).
+- **Urutan**: Daftar penyewa selalu diurutkan secara stabil berdasarkan `name ASC`, lalu `id ASC`.
+
+### Status Turunan Penyewa (`TenantStatus`)
+Status penyewa adalah nilai murni turunan (tidak disimpan di database) dengan urutan prioritas ketat:
+`overdue > active > ended > unassigned`
+1. **`overdue`** (Menunggak): Memiliki setidaknya satu tagihan (`charges` non-deleted) pada huniannya yang tanggal jatuh temponya (`due_date`) **lebih awal dari tanggal hari ini** di zona waktu lokal (`Asia/Jakarta`) DAN total pembayaran yang tercatat (`payments` non-deleted) **kurang dari jumlah tagihan** (`amount`). Tagihan yang jatuh tempo hari ini *belum* dianggap overdue.
+2. **`active`** (Aktif): Tidak memiliki tagihan overdue, dan memiliki setidaknya satu hunian aktif (`occupancies.status == 'active'` non-deleted).
+3. **`ended`** (Selesai): Tidak memiliki tagihan overdue maupun hunian aktif, tetapi memiliki riwayat hunian di masa lalu (`occupancies` non-deleted).
+4. **`unassigned`** (Belum Ada Kamar): Belum pernah memiliki riwayat hunian sama sekali.
+
 ### Pembuatan Tagihan Sewa Otomatis (`ChargeGenerator`)
 - Berjalan lokal (tanpa internet): saat aplikasi dibuka, saat occupancy dibuat/diperpanjang, dan lewat tugas harian.
 - **Harian/mingguan**: satu tagihan `rent` untuk seluruh lama sewa; `due_date` default = `start_date`.

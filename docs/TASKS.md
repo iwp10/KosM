@@ -16,16 +16,16 @@
 
 ## Fase 1 — Kelola Kos & Daftar Penyewa
 **Kelola Kos (multi-lokasi)**
-- [~] F9.1 Daftar kos + onboarding membuat kos pertama
-- [~] F9.2 Tambah/ubah/hapus kos (tolak hapus jika masih ada penghuni aktif)
-- [~] F9.3 Pilih kos aktif (`PropertySwitcher`, simpan `active_property_id`)
-- [~] F9.4 Tampilan gabungan "Semua Kos"
+- [x] F9.1 Daftar kos + onboarding membuat kos pertama
+- [x] F9.2 Tambah/ubah/hapus kos (tolak hapus jika masih ada penghuni aktif)
+- [x] F9.3 Pilih kos aktif (`PropertySwitcher`, simpan `active_property_id`)
+- [x] F9.4 Tampilan gabungan "Semua Kos"
 
 **Daftar Penyewa**
 - [ ] F1.1 Daftar semua penyewa (data + UI + 4 kondisi layar)
 - [ ] F1.3 Cari & saring penyewa
 - [ ] F1.4 Tambah/ubah/hapus penyewa + detail penyewa
-- [ ] F1.4a Kolom id_photo_path di tabel tenants (schemaVersion 2 + migrasi + test)
+- [~] F1.4a Kolom id_photo_path di tabel tenants (schemaVersion 2 + migrasi + test)
 - [ ] F1.4b Ambil/pilih foto, kompres, simpan, hapus
 - [ ] F1.2 Ringkasan kos sekilas di Beranda (butuh kamar/tagihan; boleh sementara 0)
 
@@ -176,3 +176,29 @@
     4. Ubah kos: Edit nama/alamat/kontak kos di Kelola Kos dan verifikasi perubahan tercermin di daftar dan di PropertySwitcher.
     5. Hapus kos: Hapus kos yang sedang aktif, pastikan kos aktif otomatis beralih ke kos lain yang tersisa. Hapus seluruh kos sampai habis: pastikan aplikasi otomatis kembali ke layar Onboarding, dan setelah kos baru dibuat, kos tersebut otomatis menjadi kos aktif.
     6. Mode pesawat (Offline): Matikan Wi-Fi dan data seluler; pastikan seluruh alur onboarding, penambahan, pengubahan, pemilihan, dan penghapusan kos bekerja lancar tanpa kendala jaringan.
+- 2026-10-31: F1.4a Kolom id_photo_path di tabel tenants (schemaVersion 2 + migrasi + data layer tenant) [~].
+  - Deskripsi Tugas: Implementasi tahap data penyewa (tanpa UI). Penambahan kolom `id_photo_path` (nullable) pada tabel `tenants`, penaikan `schemaVersion` ke 2 dengan strategi migrasi `onUpgrade` (`m.addColumn`), entitas `Tenant`, validasi nama & normalisasi nomor HP ke format `+628...`, status turunan penyewa (`TenantStatus`: overdue > active > ended > unassigned) dengan tanggal acuan `Asia/Jakarta`, visibilitas per kos, `TenantDao` dengan query batch bebas N+1 & reaktif stream (`watchAllWithStatus`), `TenantRepositoryImpl`, serta `tenantRepositoryProvider`.
+  - File yang berubah:
+    - `lib/core/database/tables/tenants_table.dart`
+    - `lib/core/database/app_database.dart` & `lib/core/database/app_database.g.dart`
+    - `lib/core/errors/app_exception.dart`
+    - `lib/features/tenant/domain/tenant.dart`
+    - `lib/features/tenant/domain/tenant_validators.dart`
+    - `lib/features/tenant/domain/tenant_repository.dart`
+    - `lib/features/tenant/data/tenant_dao.dart`
+    - `lib/features/tenant/data/tenant_repository_impl.dart`
+    - `lib/features/tenant/presentation/providers/tenant_providers.dart`
+    - `docs/ARCHITECTURE.md`
+    - `test/core/database_migration_test.dart`
+    - `test/core/database_test.dart`
+    - `test/features/tenant/tenant_repository_test.dart`
+    - `test/features/tenant/tenant_status_test.dart`
+    - `docs/TASKS.md`
+  - Hasil Uji Otomatis:
+    - `dart format .`: Bersih.
+    - `flutter analyze`: 0 issues (bersih).
+    - `flutter test`: 62/62 tests passed (seluruh test suite proyek lulus 100%).
+  - Batasan Implementasi:
+    - Nomor HP luar negeri ditolak untuk saat ini (hanya menerima nomor Indonesia berawalan `08`, `+62`, atau `62` dengan panjang 9-13 digit setelah kode negara).
+    - TODO(F1.4b): File foto KTP ikut dihapus dari penyimpanan lokal saat `softDelete` penyewa dieksekusi (akan dihubungkan pada modul foto F1.4b).
+  - Status [~]: Menunggu pengujian migrasi di HP nyata oleh pemilik proyek (uji pembaruan versi tanpa uninstall untuk memastikan data kos & penyewa lama tetap utuh dan kolom baru bernilai null).

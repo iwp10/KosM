@@ -17,8 +17,8 @@ void main() {
   group('AppDatabase In-Memory Tests', () {
     final now = DateTime.now().toUtc();
 
-    test('schemaVersion is 1', () {
-      expect(db.schemaVersion, 1);
+    test('schemaVersion is 2', () {
+      expect(db.schemaVersion, 2);
     });
 
     test('can insert and read from all 9 tables', () async {
