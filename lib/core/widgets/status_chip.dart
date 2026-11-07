@@ -11,6 +11,7 @@ enum StatusType {
   unpaid,
   overdue,
   error,
+  neutral,
 }
 
 /// KosM standard status chip component.
@@ -101,6 +102,14 @@ class StatusChip extends StatelessWidget {
           backgroundColor: AppColors.statusErrorBg,
           textColor: AppColors.statusErrorText,
         );
+      case StatusType.neutral:
+        return StatusChip(
+          label: customLabel ?? 'Netral',
+          type: type,
+          icon: icon,
+          backgroundColor: AppColors.surfaceMuted,
+          textColor: AppColors.textSecondary,
+        );
     }
   }
 
@@ -142,6 +151,10 @@ class StatusChip extends StatelessWidget {
         case StatusType.error:
           bg = AppColors.statusErrorBg;
           fg = AppColors.statusErrorText;
+          break;
+        case StatusType.neutral:
+          bg = AppColors.surfaceMuted;
+          fg = AppColors.textSecondary;
           break;
       }
     }

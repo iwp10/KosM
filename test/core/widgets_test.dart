@@ -112,5 +112,129 @@ void main() {
       expect(find.text('Tersinkron'), findsOneWidget);
       expect(find.byIcon(Icons.cloud_done_rounded), findsOneWidget);
     });
+
+    testWidgets('StatusChip renders neutral status type correctly', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithTheme(
+          StatusChip.fromType(StatusType.neutral, customLabel: 'Aktif'),
+        ),
+      );
+
+      expect(find.text('Aktif'), findsOneWidget);
+    });
+
+    testWidgets('ListTileCard renders all elements and handles onTap', (
+      tester,
+    ) async {
+      bool tapped = false;
+      await tester.pumpWidget(
+        wrapWithTheme(
+          ListTileCard(
+            title: 'Budi Santoso',
+            subtitle: 'Kamar 03 · 081234567890',
+            trailing: StatusChip.fromType(
+              StatusType.neutral,
+              customLabel: 'Aktif',
+            ),
+            bottomText: 'Catatan penyewa',
+            onTap: () => tapped = true,
+          ),
+        ),
+      );
+
+      expect(find.text('Budi Santoso'), findsOneWidget);
+      expect(find.text('Kamar 03 · 081234567890'), findsOneWidget);
+      expect(find.text('Aktif'), findsOneWidget);
+      expect(find.text('BS'), findsOneWidget); // derived initials
+      expect(find.text('Catatan penyewa'), findsOneWidget);
+
+      await tester.tap(find.text('Budi Santoso'));
+      expect(tapped, true);
+    });
+
+    testWidgets('ListTileCard does not overflow on textScale 1.3', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: Scaffold(
+            body: MediaQuery(
+              data: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+              child: ListTileCard(
+                title:
+                    'Raden Mas Danang Sutowijoyo Prawirohardjo Panjang Sekali',
+                subtitle: 'Kamar 15 · 081399887766 · Tambahan Info Panjang',
+                trailing: StatusChip.fromType(
+                  StatusType.overdue,
+                  customLabel: 'Menunggak',
+                ),
+                bottomText: 'Catatan sangat panjang untuk memastikan teks dua baris terpotong rapi dengan ellipsis tanpa overflow.',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('AppTextField renders prefixText correctly', (tester) async {
+      await tester.pumpWidget(
+        wrapWithTheme(
+          const AppTextField(
+            label: 'No. HP',
+            prefixText: '+62 ',
+            hintText: '8123456789',
+          ),
+        ),
+      );
+
+      expect(find.text('No. HP'), findsOneWidget);
+      expect(find.text('+62 '), findsOneWidget);
+    });
+
+    testWidgets('ConfirmDialog respects showCancel parameter', (tester) async {
+      // 1. With showCancel = false
+      await tester.pumpWidget(
+        wrapWithTheme(
+          ConfirmDialog(
+            title: 'Peringatan',
+            message: 'Aksi ini memerlukan perhatian khusus.',
+            confirmLabel: 'Mengerti',
+            showCancel: false,
+            onConfirm: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('Peringatan'), findsOneWidget);
+      expect(find.text('Mengerti'), findsOneWidget);
+      expect(find.text('Batal'), findsNothing);
+
+      // 2. With default showCancel = true
+      await tester.pumpWidget(
+        wrapWithTheme(
+          ConfirmDialog(
+            title: 'Hapus Data?',
+            message: 'Data akan dihapus.',
+            confirmLabel: 'Hapus',
+            cancelLabel: 'Batal',
+            onConfirm: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('Hapus Data?'), findsOneWidget);
+      expect(find.text('Hapus'), findsOneWidget);
+      expect(find.text('Batal'), findsOneWidget);
+    });
   });
 }

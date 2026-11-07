@@ -3,6 +3,7 @@ export 'app_snackbar.dart';
 export 'app_text_field.dart';
 export 'confirm_dialog.dart';
 export 'empty_state.dart';
+export 'list_tile_card.dart';
 export 'primary_button.dart';
 export 'property_switcher.dart';
 export 'rate_type_chip.dart';

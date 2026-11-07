@@ -137,6 +137,15 @@ class TenantDao {
     )..where((o) => o.tenantId.isIn(tenantIds) & o.deletedAt.isNull())).get();
   }
 
+  /// Batch fetches room numbers for given room IDs (including soft-deleted rooms).
+  Future<Map<String, String>> getRoomNumbersByIds(List<String> roomIds) async {
+    if (roomIds.isEmpty) return {};
+    final roomsList = await (_db.select(
+      _db.rooms,
+    )..where((r) => r.id.isIn(roomIds))).get();
+    return {for (final r in roomsList) r.id: r.number};
+  }
+
   /// Batch fetches non-deleted charges for given occupancy IDs.
   Future<List<ChargeData>> getChargesForOccupancies(
     List<String> occupancyIds,

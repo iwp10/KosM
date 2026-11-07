@@ -47,6 +47,34 @@ class TenantRepositoryImpl implements TenantRepository {
     return DateTime(jakarta.year, jakarta.month, jakarta.day);
   }
 
+  /// Resolves the current room number:
+  /// - The room number of the active occupancy if available.
+  /// - Otherwise, the room number of the most recently ended occupancy.
+  /// - Returns `null` if the tenant has never had any occupancies.
+  static String? resolveCurrentRoomNumber(
+    List<OccupancyData> occupancies,
+    Map<String, String> roomNumbersById,
+  ) {
+    if (occupancies.isEmpty) return null;
+
+    final activeOccupancies = occupancies
+        .where((o) => o.status == 'active')
+        .toList();
+    if (activeOccupancies.isNotEmpty) {
+      activeOccupancies.sort((a, b) => b.startDate.compareTo(a.startDate));
+      return roomNumbersById[activeOccupancies.first.roomId];
+    }
+
+    final sorted = List<OccupancyData>.from(occupancies)
+      ..sort((a, b) {
+        final aEnd = a.actualEndDate ?? a.plannedEndDate ?? a.startDate;
+        final bEnd = b.actualEndDate ?? b.plannedEndDate ?? b.startDate;
+        return bEnd.compareTo(aEnd);
+      });
+
+    return roomNumbersById[sorted.first.roomId];
+  }
+
   /// Pure calculation of [TenantStatus] for a tenant given their occupancies, charges, and payments.
   /// Priority: overdue > active > ended > unassigned.
   static TenantStatus calculateStatus({
@@ -140,6 +168,10 @@ class TenantRepositoryImpl implements TenantRepository {
     // Batch query payments
     final paymentsMap = await _dao.getPaymentsTotalForCharges(allChargeIds);
 
+    // Batch query room numbers
+    final allRoomIds = occupancies.map((o) => o.roomId).toSet().toList();
+    final roomNumbersById = await _dao.getRoomNumbersByIds(allRoomIds);
+
     return tenantDataList.map((tenantData) {
       final tenant = _toDomain(tenantData);
       final tenantOccs = occupanciesByTenant[tenant.id] ?? const [];
@@ -159,7 +191,15 @@ class TenantRepositoryImpl implements TenantRepository {
         asOf: asOf,
       );
 
-      return TenantWithStatus(tenant: tenant, status: status);
+      final hasActive = tenantOccs.any((o) => o.status == 'active');
+      final roomNumber = resolveCurrentRoomNumber(tenantOccs, roomNumbersById);
+
+      return TenantWithStatus(
+        tenant: tenant,
+        status: status,
+        hasActiveOccupancy: hasActive,
+        currentRoomNumber: roomNumber,
+      );
     }).toList();
   }
 
@@ -184,6 +224,9 @@ class TenantRepositoryImpl implements TenantRepository {
     final chargeIds = charges.map((c) => c.id).toList();
     final paymentsMap = await _dao.getPaymentsTotalForCharges(chargeIds);
 
+    final allRoomIds = occupancies.map((o) => o.roomId).toSet().toList();
+    final roomNumbersById = await _dao.getRoomNumbersByIds(allRoomIds);
+
     final status = calculateStatus(
       occupancies: occupancies,
       charges: charges,
@@ -191,7 +234,20 @@ class TenantRepositoryImpl implements TenantRepository {
       asOf: asOf,
     );
 
-    return TenantWithStatus(tenant: tenant, status: status);
+    final hasActive = occupancies.any((o) => o.status == 'active');
+    final roomNumber = resolveCurrentRoomNumber(occupancies, roomNumbersById);
+
+    return TenantWithStatus(
+      tenant: tenant,
+      status: status,
+      hasActiveOccupancy: hasActive,
+      currentRoomNumber: roomNumber,
+    );
+  }
+
+  @override
+  Stream<TenantWithStatus?> watchByIdWithStatus(String id, {DateTime? asOf}) {
+    return _dao.watchStatusChanges(() => getByIdWithStatus(id, asOf: asOf));
   }
 
   @override

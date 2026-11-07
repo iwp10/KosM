@@ -90,12 +90,20 @@ class Tenant {
       'Tenant(id: $id, name: $name, phone: $phone, photo: $idPhotoPath)';
 }
 
-/// Domain model combining a [Tenant] with their derived [TenantStatus].
+/// Domain model combining a [Tenant] with their derived [TenantStatus],
+/// active occupancy flag, and current or most recent room number.
 class TenantWithStatus {
   final Tenant tenant;
   final TenantStatus status;
+  final bool hasActiveOccupancy;
+  final String? currentRoomNumber;
 
-  const TenantWithStatus({required this.tenant, required this.status});
+  const TenantWithStatus({
+    required this.tenant,
+    required this.status,
+    this.hasActiveOccupancy = false,
+    this.currentRoomNumber,
+  });
 
   @override
   bool operator ==(Object other) =>
@@ -103,12 +111,15 @@ class TenantWithStatus {
       other is TenantWithStatus &&
           runtimeType == other.runtimeType &&
           tenant == other.tenant &&
-          status == other.status;
+          status == other.status &&
+          hasActiveOccupancy == other.hasActiveOccupancy &&
+          currentRoomNumber == other.currentRoomNumber;
 
   @override
-  int get hashCode => Object.hash(tenant, status);
+  int get hashCode =>
+      Object.hash(tenant, status, hasActiveOccupancy, currentRoomNumber);
 
   @override
   String toString() =>
-      'TenantWithStatus(tenant: ${tenant.name}, status: $status)';
+      'TenantWithStatus(tenant: ${tenant.name}, status: $status, activeOcc: $hasActiveOccupancy, room: $currentRoomNumber)';
 }
