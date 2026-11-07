@@ -43,6 +43,30 @@ abstract class AppStrings {
   static const String propertyDeletedSuccess = 'Kos berhasil dihapus.';
   static const String activePropertyBadge = 'Kos Aktif';
 
+  // Tenant (Penyewa)
+  static const String tenantsTitle = 'Penyewa';
+  static const String searchTenantHint = 'Cari nama, kamar, no. HP...';
+  static const String filterAll = 'Semua';
+  static const String filterActive = 'Aktif';
+  static const String filterOverdue = 'Menunggak';
+  static const String filterEnded = 'Keluar';
+  static const String statusOverdue = 'Menunggak';
+  static const String statusActive = 'Aktif';
+  static const String statusEnded = 'Keluar';
+  static const String statusUnassigned = 'Belum Menghuni';
+  static const String emptyTenantsTitle = 'Belum Ada Penyewa';
+  static const String emptyTenantsDesc =
+      'Tambahkan penyewa pertama untuk mulai mengelola hunian kos.';
+  static const String noMatchingTenantsTitle = 'Tidak Ada Penyewa yang Cocok';
+  static const String noMatchingTenantsDesc =
+      'Coba ubah kata kunci pencarian atau ganti filter status.';
+  static const String clearSearch = 'Hapus Pencarian';
+  static const String addTenant = 'Tambah Penyewa';
+  static const String loadTenantsError =
+      'Gagal memuat data penyewa. Silakan coba lagi.';
+  static const String roomPrefix = 'Kamar';
+  static const String noRoomAssigned = 'Belum ada kamar';
+
   // More Menu (Tab Lainnya)
   static const String moreMenuTitle = 'Menu Lainnya';
   static const String moreMenuDesc =

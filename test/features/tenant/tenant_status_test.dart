@@ -446,5 +446,303 @@ void main() {
             ),
           );
     });
+
+    test('hasActiveOccupancy and currentRoomNumber: active occupancy resolves room number and flag', () async {
+      await repository.create(
+        Tenant(
+          id: 't-active-occ',
+          name: 'Penyewa Kamar 101',
+          phone: '081234567890',
+          createdAt: todayUtc,
+          updatedAt: todayUtc,
+        ),
+      );
+
+      await db
+          .into(db.occupancies)
+          .insert(
+            OccupanciesCompanion.insert(
+              id: 'occ-101',
+              tenantId: 't-active-occ',
+              roomId: 'room-1',
+              startDate: yesterdayUtc,
+              rateType: 'monthly',
+              rateAmount: 1500000,
+              status: 'active',
+              createdAt: yesterdayUtc,
+              updatedAt: yesterdayUtc,
+            ),
+          );
+
+      final withStatus = await repository.getByIdWithStatus(
+        't-active-occ',
+        asOf: todayUtc,
+      );
+
+      expect(withStatus, isNotNull);
+      expect(withStatus!.hasActiveOccupancy, isTrue);
+      expect(withStatus.currentRoomNumber, '101');
+    });
+
+    test('hasActiveOccupancy and currentRoomNumber: ended occupancy resolves room number with false active flag', () async {
+      await repository.create(
+        Tenant(
+          id: 't-ended-occ',
+          name: 'Penyewa Mantan 101',
+          phone: '081234567890',
+          createdAt: todayUtc,
+          updatedAt: todayUtc,
+        ),
+      );
+
+      await db
+          .into(db.occupancies)
+          .insert(
+            OccupanciesCompanion.insert(
+              id: 'occ-ended-101',
+              tenantId: 't-ended-occ',
+              roomId: 'room-1',
+              startDate: yesterdayUtc.subtract(const Duration(days: 30)),
+              actualEndDate: Value(yesterdayUtc),
+              rateType: 'monthly',
+              rateAmount: 1500000,
+              status: 'ended',
+              createdAt: yesterdayUtc,
+              updatedAt: yesterdayUtc,
+            ),
+          );
+
+      final withStatus = await repository.getByIdWithStatus(
+        't-ended-occ',
+        asOf: todayUtc,
+      );
+
+      expect(withStatus, isNotNull);
+      expect(withStatus!.hasActiveOccupancy, isFalse);
+      expect(withStatus.currentRoomNumber, '101');
+    });
+
+    test('hasActiveOccupancy and currentRoomNumber: preserves room number even when room is soft-deleted', () async {
+      // Create room-del
+      await db
+          .into(db.rooms)
+          .insert(
+            RoomsCompanion.insert(
+              id: 'room-del',
+              propertyId: 'prop-1',
+              number: '999',
+              referenceRateType: 'monthly',
+              createdAt: yesterdayUtc,
+              updatedAt: yesterdayUtc,
+              deletedAt: Value(todayUtc), // Soft deleted
+            ),
+          );
+
+      await repository.create(
+        Tenant(
+          id: 't-soft-deleted-room',
+          name: 'Penyewa Kamar Dihapus',
+          phone: '081234567890',
+          createdAt: todayUtc,
+          updatedAt: todayUtc,
+        ),
+      );
+
+      await db
+          .into(db.occupancies)
+          .insert(
+            OccupanciesCompanion.insert(
+              id: 'occ-del',
+              tenantId: 't-soft-deleted-room',
+              roomId: 'room-del',
+              startDate: yesterdayUtc.subtract(const Duration(days: 30)),
+              actualEndDate: Value(yesterdayUtc),
+              rateType: 'monthly',
+              rateAmount: 1500000,
+              status: 'ended',
+              createdAt: yesterdayUtc,
+              updatedAt: yesterdayUtc,
+            ),
+          );
+
+      final withStatus = await repository.getByIdWithStatus(
+        't-soft-deleted-room',
+        asOf: todayUtc,
+      );
+
+      expect(withStatus, isNotNull);
+      expect(withStatus!.hasActiveOccupancy, isFalse);
+      expect(withStatus.currentRoomNumber, '999');
+    });
+
+    test('hasActiveOccupancy and currentRoomNumber: unassigned tenant has false flag and null room number', () async {
+      await repository.create(
+        Tenant(
+          id: 't-unassigned-flag',
+          name: 'Penyewa Baru Lagi',
+          phone: '081234567890',
+          createdAt: todayUtc,
+          updatedAt: todayUtc,
+        ),
+      );
+
+      final withStatus = await repository.getByIdWithStatus(
+        't-unassigned-flag',
+        asOf: todayUtc,
+      );
+
+      expect(withStatus, isNotNull);
+      expect(withStatus!.hasActiveOccupancy, isFalse);
+      expect(withStatus.currentRoomNumber, isNull);
+    });
+
+    test('hasActiveOccupancy and currentRoomNumber: active occupancy resolves room number and flag', () async {
+      await repository.create(
+        Tenant(
+          id: 't-active-occ',
+          name: 'Penyewa Kamar 101',
+          phone: '081234567890',
+          createdAt: todayUtc,
+          updatedAt: todayUtc,
+        ),
+      );
+
+      await db
+          .into(db.occupancies)
+          .insert(
+            OccupanciesCompanion.insert(
+              id: 'occ-101',
+              tenantId: 't-active-occ',
+              roomId: 'room-1',
+              startDate: yesterdayUtc,
+              rateType: 'monthly',
+              rateAmount: 1500000,
+              status: 'active',
+              createdAt: yesterdayUtc,
+              updatedAt: yesterdayUtc,
+            ),
+          );
+
+      final withStatus = await repository.getByIdWithStatus(
+        't-active-occ',
+        asOf: todayUtc,
+      );
+
+      expect(withStatus, isNotNull);
+      expect(withStatus!.hasActiveOccupancy, isTrue);
+      expect(withStatus.currentRoomNumber, '101');
+    });
+
+    test('hasActiveOccupancy and currentRoomNumber: ended occupancy resolves room number with false active flag', () async {
+      await repository.create(
+        Tenant(
+          id: 't-ended-occ',
+          name: 'Penyewa Mantan 101',
+          phone: '081234567890',
+          createdAt: todayUtc,
+          updatedAt: todayUtc,
+        ),
+      );
+
+      await db
+          .into(db.occupancies)
+          .insert(
+            OccupanciesCompanion.insert(
+              id: 'occ-ended-101',
+              tenantId: 't-ended-occ',
+              roomId: 'room-1',
+              startDate: yesterdayUtc.subtract(const Duration(days: 30)),
+              actualEndDate: Value(yesterdayUtc),
+              rateType: 'monthly',
+              rateAmount: 1500000,
+              status: 'ended',
+              createdAt: yesterdayUtc,
+              updatedAt: yesterdayUtc,
+            ),
+          );
+
+      final withStatus = await repository.getByIdWithStatus(
+        't-ended-occ',
+        asOf: todayUtc,
+      );
+
+      expect(withStatus, isNotNull);
+      expect(withStatus!.hasActiveOccupancy, isFalse);
+      expect(withStatus.currentRoomNumber, '101');
+    });
+
+    test('hasActiveOccupancy and currentRoomNumber: preserves room number even when room is soft-deleted', () async {
+      // Create room-del
+      await db
+          .into(db.rooms)
+          .insert(
+            RoomsCompanion.insert(
+              id: 'room-del',
+              propertyId: 'prop-1',
+              number: '999',
+              referenceRateType: 'monthly',
+              createdAt: yesterdayUtc,
+              updatedAt: yesterdayUtc,
+              deletedAt: Value(todayUtc), // Soft deleted
+            ),
+          );
+
+      await repository.create(
+        Tenant(
+          id: 't-soft-deleted-room',
+          name: 'Penyewa Kamar Dihapus',
+          phone: '081234567890',
+          createdAt: todayUtc,
+          updatedAt: todayUtc,
+        ),
+      );
+
+      await db
+          .into(db.occupancies)
+          .insert(
+            OccupanciesCompanion.insert(
+              id: 'occ-del',
+              tenantId: 't-soft-deleted-room',
+              roomId: 'room-del',
+              startDate: yesterdayUtc.subtract(const Duration(days: 30)),
+              actualEndDate: Value(yesterdayUtc),
+              rateType: 'monthly',
+              rateAmount: 1500000,
+              status: 'ended',
+              createdAt: yesterdayUtc,
+              updatedAt: yesterdayUtc,
+            ),
+          );
+
+      final withStatus = await repository.getByIdWithStatus(
+        't-soft-deleted-room',
+        asOf: todayUtc,
+      );
+
+      expect(withStatus, isNotNull);
+      expect(withStatus!.hasActiveOccupancy, isFalse);
+      expect(withStatus.currentRoomNumber, '999');
+    });
+
+    test('hasActiveOccupancy and currentRoomNumber: unassigned tenant has false flag and null room number', () async {
+      await repository.create(
+        Tenant(
+          id: 't-unassigned-flag',
+          name: 'Penyewa Baru Lagi',
+          phone: '081234567890',
+          createdAt: todayUtc,
+          updatedAt: todayUtc,
+        ),
+      );
+
+      final withStatus = await repository.getByIdWithStatus(
+        't-unassigned-flag',
+        asOf: todayUtc,
+      );
+
+      expect(withStatus, isNotNull);
+      expect(withStatus!.hasActiveOccupancy, isFalse);
+      expect(withStatus.currentRoomNumber, isNull);
+    });
   });
 }

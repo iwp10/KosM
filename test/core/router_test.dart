@@ -83,11 +83,7 @@ void main() {
       // Switch to Penyewa tab
       await tester.tap(find.text('Penyewa'));
       await tester.pumpAndSettle();
-      expect(find.text('Daftar Penyewa'), findsAtLeastNWidgets(1));
-      expect(
-        find.text('Kelola data penyewa kos Anda di sini.'),
-        findsOneWidget,
-      );
+      expect(find.text(AppStrings.emptyTenantsTitle), findsOneWidget);
 
       // Switch to Kamar tab
       await tester.tap(find.text('Kamar'));

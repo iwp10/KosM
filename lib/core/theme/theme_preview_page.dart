@@ -409,6 +409,65 @@ class _ThemePreviewPageState extends State<ThemePreviewPage> {
               },
             ),
           ),
+          const SizedBox(height: AppSpacing.xl),
+
+          // 8. ListTileCard (Daftar Penyewa - Contoh)
+          _buildSectionHeader(title: '8. ListTileCard (Daftar Penyewa)'),
+          ListTileCard(
+            title: 'Budi Santoso',
+            subtitle: 'Kamar 03 · 081234567890',
+            trailing: StatusChip.fromType(
+              StatusType.neutral,
+              customLabel: 'Aktif',
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ListTileCard(
+            title: 'Siti Rahma',
+            subtitle: 'Kamar 05 · 085712345678',
+            trailing: StatusChip.fromType(
+              StatusType.overdue,
+              customLabel: 'Menunggak',
+            ),
+            bottomText: 'Tunggakan sewa bulan Oktober 2026',
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ListTileCard(
+            title: 'Ahmad Fauzi',
+            subtitle: 'Kamar 01 · 081987654321',
+            trailing: StatusChip.fromType(
+              StatusType.neutral,
+              customLabel: 'Keluar',
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ListTileCard(
+            title: 'Dewi Lestari',
+            subtitle: 'Belum ada kamar · 082133445566',
+            trailing: StatusChip.fromType(
+              StatusType.neutral,
+              customLabel: 'Belum Menghuni',
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ListTileCard(
+            title: 'Hendra Pratama',
+            subtitle: 'Kamar 12 · 081122334455',
+            trailing: StatusChip.fromType(
+              StatusType.neutral,
+              customLabel: 'Aktif',
+            ),
+            bottomText: 'Kunci cadangan ada di pengelola',
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ListTileCard(
+            title: 'Raden Mas Danang Sutowijoyo Prawirohardjo',
+            subtitle: 'Kamar 15 · 081399887766',
+            trailing: StatusChip.fromType(
+              StatusType.overdue,
+              customLabel: 'Menunggak',
+            ),
+          ),
           const SizedBox(height: AppSpacing.xxl),
         ],
       ),

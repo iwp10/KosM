@@ -22,8 +22,8 @@
 - [x] F9.4 Tampilan gabungan "Semua Kos"
 
 **Daftar Penyewa**
-- [ ] F1.1 Daftar semua penyewa (data + UI + 4 kondisi layar)
-- [ ] F1.3 Cari & saring penyewa
+- [~] F1.1 Daftar semua penyewa (data + UI + 4 kondisi layar)
+- [~] F1.3 Cari & saring penyewa
 - [ ] F1.4 Tambah/ubah/hapus penyewa + detail penyewa
 - [x] F1.4a Kolom id_photo_path di tabel tenants (schemaVersion 2 + migrasi + test)
 - [ ] F1.4b Ambil/pilih foto, kompres, simpan, hapus
@@ -202,3 +202,45 @@
     - Nomor HP luar negeri ditolak untuk saat ini (hanya menerima nomor Indonesia berawalan `08`, `+62`, atau `62` dengan panjang 9-13 digit setelah kode negara).
     - TODO(F1.4b): File foto KTP ikut dihapus dari penyimpanan lokal saat `softDelete` penyewa dieksekusi (akan dihubungkan pada modul foto F1.4b).
   - Status [~]: Menunggu pengujian migrasi di HP nyata oleh pemilik proyek (uji pembaruan versi tanpa uninstall untuk memastikan data kos & penyewa lama tetap utuh dan kolom baru bernilai null).
+- 2026-11-07: F1.1 (Daftar semua penyewa) dan F1.3 (Cari & saring penyewa) [~].
+  - Deskripsi Tugas:
+    - Menambahkan `hasActiveOccupancy` (bool) dan `currentRoomNumber` (String?, nomor kamar aktif atau kamar terakhir; null bila belum pernah menghuni; mempertahankan nomor kamar jika kamar di-soft-delete) pada `TenantWithStatus`.
+    - Komponen UI `ListTileCard` (`lib/core/widgets/list_tile_card.dart`) per `docs/DESIGN.md` bagian 7: avatar inisial 40dp, heading nama, subtitle nomor kamar & HP, trailing chip tunggal `StatusChip`, teks catatan bawah, aman textScale 1.3 tanpa overflow.
+    - Menambahkan `StatusType.neutral` pada `StatusChip` untuk status "Aktif", "Keluar", dan "Belum Menghuni"; serta merah untuk "Menunggak".
+    - Layar `TenantListPage` (`lib/features/tenant/presentation/pages/tenant_list_page.dart`): 4 kondisi (loading static skeleton tanpa timer/animasi, kosong belum ada penyewa, error dengan tombol coba lagi, data), serta kondisi hasil cari/filter kosong terpisah dengan tombol "Hapus Pencarian".
+    - Pencarian teks dengan debounce 250ms (nama case-insensitive substring, nomor kamar substring, nomor HP dinormalisasi jika query >= 4 digit angka; query "03" tidak mencocokkan nomor HP tapi mencocokkan nomor kamar).
+    - Filter chip: Semua, Aktif, Menunggak, Keluar. Hitung angka pada chip dihitung sebelum pencarian diterapkan.
+    - Pengaitan rute di `app_router.dart`: tab `/tenants` membuka `TenantListPage` dengan dropdown `PropertyAwareAppBarTitle` di AppBar; sub-rute `/tenants/new` diarahkan ke root navigator.
+    - Bagian pratinjau visual di `lib/core/theme/theme_preview_page.dart` (6 kartu contoh `ListTileCard`).
+  - File yang berubah:
+    - `lib/core/widgets/list_tile_card.dart`
+    - `lib/core/widgets/widgets.dart`
+    - `lib/core/widgets/status_chip.dart`
+    - `lib/core/strings/app_strings.dart`
+    - `lib/core/router/app_router.dart`
+    - `lib/core/theme/theme_preview_page.dart`
+    - `lib/features/tenant/domain/tenant.dart`
+    - `lib/features/tenant/data/tenant_dao.dart`
+    - `lib/features/tenant/data/tenant_repository_impl.dart`
+    - `lib/features/tenant/presentation/providers/tenant_providers.dart`
+    - `lib/features/tenant/presentation/pages/tenant_list_page.dart`
+    - `test/core/widgets_test.dart`
+    - `test/core/router_test.dart`
+    - `test/features/tenant/tenant_status_test.dart`
+    - `test/features/tenant/tenant_providers_test.dart`
+    - `test/features/tenant/tenant_list_page_test.dart`
+    - `docs/TASKS.md`
+  - Hasil Uji Otomatis:
+    - `dart format .`: Bersih.
+    - `flutter analyze`: 0 issues (bersih).
+    - `flutter test`: 93/93 tests passed (seluruh test suite proyek lulus 100%).
+  - Langkah Uji Manual di HP (untuk verifikasi pemilik proyek sebelum mengubah [~] menjadi [x]):
+    1. Buka tab Penyewa saat kos belum ada penyewa: pastikan layar menampilkan EmptyState "Belum Ada Penyewa" dan tombol "Tambah Penyewa".
+    2. Tap FAB atau tombol "Tambah Penyewa": pastikan membuka form placeholder tambah penyewa di `/tenants/new`.
+    3. Tampilan kartu penyewa: verifikasi avatar inisial 40dp, nama penyewa, nomor kamar dan no. HP di subjudul, dan tepat 1 status chip ("Aktif", "Menunggak", "Keluar", atau "Belum Menghuni").
+    4. Saring status chip: tap chip "Aktif", "Menunggak", "Keluar", "Semua", pastikan daftar tersaring sesuai kategori dan angka pada chip tetap stabil.
+    5. Pencarian nama / kamar: ketik nama atau nomor kamar, pastikan daftar tersaring dengan debounce 250ms.
+    6. Pencarian no. HP: ketik 4 digit nomor HP (mis. "0812" atau "+62812"), pastikan cocok; ketik 2 digit (mis. "03"), pastikan hanya mencocokkan nomor kamar dan tidak mencocokkan no. HP.
+    7. Hasil pencarian kosong: ketik teks acak yang tidak cocok, pastikan muncul EmptyState "Tidak Ada Penyewa yang Cocok", lalu tap "Hapus Pencarian" untuk mengembalikan filter dan input pencarian.
+    8. Ganti kos di PropertySwitcher: pastikan daftar penyewa otomatis terfilter mengikuti kos yang dipilih (atau menampilkan gabungan di "Semua Kos").
+    9. Mode pesawat (Offline): matikan koneksi internet, pastikan seluruh tampilan daftar, filter, pencarian, dan pergantian kos tetap berfungsi normal tanpa kendala jaringan.

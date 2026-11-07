@@ -9,6 +9,7 @@ import '../../features/property/presentation/pages/property_form_page.dart';
 import '../../features/property/presentation/pages/property_list_page.dart';
 import '../../features/property/presentation/providers/property_providers.dart';
 import '../../features/settings/presentation/pages/more_page.dart';
+import '../../features/tenant/presentation/pages/tenant_list_page.dart';
 import '../theme/theme.dart';
 import '../theme/theme_preview_page.dart';
 import '../widgets/widgets.dart';
@@ -195,12 +196,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/tenants',
-                builder: (context, state) => const PlaceholderPage(
-                  title: 'Daftar Penyewa',
-                  description: 'Kelola data penyewa kos Anda di sini.',
-                  icon: Icons.people_rounded,
-                  titleWidget: PropertyAwareAppBarTitle(),
-                ),
+                builder: (context, state) => const TenantListPage(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const PlaceholderPage(
+                      title: 'Tambah Penyewa',
+                      description:
+                          'Form tambah penyewa akan tersedia di F1.4b.',
+                      icon: Icons.person_add_rounded,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
