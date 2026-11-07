@@ -185,5 +185,56 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('AppTextField renders prefixText correctly', (tester) async {
+      await tester.pumpWidget(
+        wrapWithTheme(
+          const AppTextField(
+            label: 'No. HP',
+            prefixText: '+62 ',
+            hintText: '8123456789',
+          ),
+        ),
+      );
+
+      expect(find.text('No. HP'), findsOneWidget);
+      expect(find.text('+62 '), findsOneWidget);
+    });
+
+    testWidgets('ConfirmDialog respects showCancel parameter', (tester) async {
+      // 1. With showCancel = false
+      await tester.pumpWidget(
+        wrapWithTheme(
+          ConfirmDialog(
+            title: 'Peringatan',
+            message: 'Aksi ini memerlukan perhatian khusus.',
+            confirmLabel: 'Mengerti',
+            showCancel: false,
+            onConfirm: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('Peringatan'), findsOneWidget);
+      expect(find.text('Mengerti'), findsOneWidget);
+      expect(find.text('Batal'), findsNothing);
+
+      // 2. With default showCancel = true
+      await tester.pumpWidget(
+        wrapWithTheme(
+          ConfirmDialog(
+            title: 'Hapus Data?',
+            message: 'Data akan dihapus.',
+            confirmLabel: 'Hapus',
+            cancelLabel: 'Batal',
+            onConfirm: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('Hapus Data?'), findsOneWidget);
+      expect(find.text('Hapus'), findsOneWidget);
+      expect(find.text('Batal'), findsOneWidget);
+    });
   });
 }

@@ -29,6 +29,11 @@ abstract class TenantRepository {
   /// Gets a specific tenant by ID along with their derived status.
   Future<TenantWithStatus?> getByIdWithStatus(String id, {DateTime? asOf});
 
+  /// Watches a specific tenant along with their derived status.
+  /// Re-emits reactively whenever tenants, occupancies, rooms, charges, or payments change.
+  /// Emits `null` if the tenant does not exist or has been soft-deleted.
+  Stream<TenantWithStatus?> watchByIdWithStatus(String id, {DateTime? asOf});
+
   /// Creates a new tenant. Validates name and normalizes phone number.
   Future<void> create(Tenant tenant);
 

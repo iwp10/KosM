@@ -176,3 +176,12 @@ final filteredTenantsProvider = Provider<List<TenantWithStatus>>((ref) {
     return matchesFilter(t, filter) && matchesSearch(t, query);
   }).toList();
 });
+
+/// Stream provider for details of a single tenant with reactive updates.
+final tenantDetailProvider = StreamProvider.family<TenantWithStatus?, String>((
+  ref,
+  id,
+) {
+  final repo = ref.watch(tenantRepositoryProvider);
+  return repo.watchByIdWithStatus(id);
+});

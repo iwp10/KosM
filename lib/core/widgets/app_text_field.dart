@@ -14,8 +14,11 @@ class AppTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool obscureText;
   final Widget? prefixIcon;
+  final String? prefixText;
   final Widget? suffixIcon;
   final int maxLines;
+  final int? maxLength;
+  final MaxLengthEnforcement? maxLengthEnforcement;
   final bool enabled;
   final FormFieldValidator<String>? validator;
   final List<TextInputFormatter>? inputFormatters;
@@ -33,8 +36,11 @@ class AppTextField extends StatelessWidget {
     this.keyboardType,
     this.obscureText = false,
     this.prefixIcon,
+    this.prefixText,
     this.suffixIcon,
     this.maxLines = 1,
+    this.maxLength,
+    this.maxLengthEnforcement,
     this.enabled = true,
     this.validator,
     this.inputFormatters,
@@ -67,6 +73,8 @@ class AppTextField extends StatelessWidget {
           keyboardType: keyboardType,
           obscureText: obscureText,
           maxLines: maxLines,
+          maxLength: maxLength,
+          maxLengthEnforcement: maxLengthEnforcement,
           enabled: enabled,
           validator: validator,
           inputFormatters: inputFormatters,
@@ -78,6 +86,11 @@ class AppTextField extends StatelessWidget {
             hintText: hintText,
             errorText: errorText,
             prefixIcon: prefixIcon,
+            prefixText: prefixText,
+            prefixStyle: AppTextStyles.body.copyWith(
+              color: kosM.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
             suffixIcon: suffixIcon,
           ),
         ),

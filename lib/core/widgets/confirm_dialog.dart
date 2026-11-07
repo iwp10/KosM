@@ -10,6 +10,7 @@ class ConfirmDialog extends StatelessWidget {
   final String confirmLabel;
   final String cancelLabel;
   final bool isDestructive;
+  final bool showCancel;
   final VoidCallback onConfirm;
   final VoidCallback? onCancel;
 
@@ -20,6 +21,7 @@ class ConfirmDialog extends StatelessWidget {
     this.confirmLabel = 'Ya, Lanjutkan',
     this.cancelLabel = 'Batal',
     this.isDestructive = false,
+    this.showCancel = true,
     required this.onConfirm,
     this.onCancel,
   });
@@ -31,6 +33,7 @@ class ConfirmDialog extends StatelessWidget {
     String confirmLabel = 'Ya, Lanjutkan',
     String cancelLabel = 'Batal',
     bool isDestructive = false,
+    bool showCancel = true,
   }) {
     return showDialog<bool>(
       context: context,
@@ -40,6 +43,7 @@ class ConfirmDialog extends StatelessWidget {
         confirmLabel: confirmLabel,
         cancelLabel: cancelLabel,
         isDestructive: isDestructive,
+        showCancel: showCancel,
         onConfirm: () => Navigator.of(context).pop(true),
         onCancel: () => Navigator.of(context).pop(false),
       ),
@@ -84,23 +88,26 @@ class ConfirmDialog extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(
-                  onPressed: onCancel ?? () => Navigator.of(context).pop(false),
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(80, AppSpacing.minTouchTarget),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: AppRadius.buttonRadius,
+                if (showCancel) ...[
+                  TextButton(
+                    onPressed:
+                        onCancel ?? () => Navigator.of(context).pop(false),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(80, AppSpacing.minTouchTarget),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppRadius.buttonRadius,
+                      ),
+                      foregroundColor: kosM.textSecondary,
                     ),
-                    foregroundColor: kosM.textSecondary,
-                  ),
-                  child: Text(
-                    cancelLabel,
-                    style: AppTextStyles.bodyStrong.copyWith(
-                      color: kosM.textSecondary,
+                    child: Text(
+                      cancelLabel,
+                      style: AppTextStyles.bodyStrong.copyWith(
+                        color: kosM.textSecondary,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.sm),
+                ],
                 ElevatedButton(
                   onPressed: onConfirm,
                   style: ElevatedButton.styleFrom(

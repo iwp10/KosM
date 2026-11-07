@@ -8,8 +8,8 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/strings/strings.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../domain/tenant.dart';
 import '../providers/tenant_providers.dart';
+import '../widgets/tenant_status_chip.dart';
 
 /// Screen displaying the list of tenants with search, status filtering, and property awareness.
 /// F1.1 (Daftar semua penyewa) & F1.3 (Cari & saring penyewa).
@@ -54,31 +54,6 @@ class _TenantListPageState extends ConsumerState<TenantListPage> {
     ref.read(searchQueryProvider.notifier).setQuery('');
     ref.read(statusFilterProvider.notifier).setFilter(TenantFilter.all);
     setState(() {});
-  }
-
-  Widget _buildStatusChip(TenantStatus status) {
-    switch (status) {
-      case TenantStatus.overdue:
-        return StatusChip.fromType(
-          StatusType.overdue,
-          customLabel: AppStrings.statusOverdue,
-        );
-      case TenantStatus.active:
-        return StatusChip.fromType(
-          StatusType.neutral,
-          customLabel: AppStrings.statusActive,
-        );
-      case TenantStatus.ended:
-        return StatusChip.fromType(
-          StatusType.neutral,
-          customLabel: AppStrings.statusEnded,
-        );
-      case TenantStatus.unassigned:
-        return StatusChip.fromType(
-          StatusType.neutral,
-          customLabel: AppStrings.statusUnassigned,
-        );
-    }
   }
 
   Widget _buildFilterChip({
@@ -392,8 +367,10 @@ class _TenantListPageState extends ConsumerState<TenantListPage> {
                           return ListTileCard(
                             title: item.tenant.name,
                             subtitle: subtitle,
-                            trailing: _buildStatusChip(item.status),
+                            trailing: TenantStatusChip(status: item.status),
                             bottomText: item.tenant.note,
+                            onTap: () =>
+                                context.push('/tenants/${item.tenant.id}'),
                           );
                         },
                       ),

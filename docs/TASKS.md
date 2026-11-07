@@ -24,7 +24,7 @@
 **Daftar Penyewa**
 - [~] F1.1 Daftar semua penyewa (data + UI + 4 kondisi layar)
 - [~] F1.3 Cari & saring penyewa
-- [ ] F1.4 Tambah/ubah/hapus penyewa + detail penyewa
+- [~] F1.4 Tambah/ubah/hapus penyewa + detail penyewa
 - [x] F1.4a Kolom id_photo_path di tabel tenants (schemaVersion 2 + migrasi + test)
 - [ ] F1.4b Ambil/pilih foto, kompres, simpan, hapus
 - [ ] F1.2 Ringkasan kos sekilas di Beranda (butuh kamar/tagihan; boleh sementara 0)
@@ -244,3 +244,57 @@
     7. Hasil pencarian kosong: ketik teks acak yang tidak cocok, pastikan muncul EmptyState "Tidak Ada Penyewa yang Cocok", lalu tap "Hapus Pencarian" untuk mengembalikan filter dan input pencarian.
     8. Ganti kos di PropertySwitcher: pastikan daftar penyewa otomatis terfilter mengikuti kos yang dipilih (atau menampilkan gabungan di "Semua Kos").
     9. Mode pesawat (Offline): matikan koneksi internet, pastikan seluruh tampilan daftar, filter, pencarian, dan pergantian kos tetap berfungsi normal tanpa kendala jaringan.
+
+- 2026-11-07: F1.4 (Tambah, ubah, hapus penyewa + halaman detail) [~].
+  - Deskripsi Tugas:
+    - Form Tambah & Ubah Penyewa (`lib/features/tenant/presentation/pages/tenant_form_page.dart`):
+      - Rute `/tenants/new` (tambah) dan `/tenants/:id/edit` (ubah).
+      - Validasi inline: Nama wajib & maks 100 karakter (`TenantValidators.validateName`); Nomor HP wajib dengan awalan visual `+62 `, menerima input `08...`, `8...`, atau `+628...` lalu dinormalisasi ke `+628...` (`TenantValidators.normalizePhone`); Catatan opsional & maks 300 karakter.
+      - Pada mode ubah: Data penyewa dimuat, nomor HP ditampilkan tanpa awalan `+62` agar pengguna nyaman mengedit.
+      - Pencegahan duplikasi submit: Tombol simpan dinonaktifkan (`isLoading: true`) selama proses simpan dan guard `_isSaving` mencegah submit ganda akibat double tap cepat.
+      - Navigasi & umpan balik: Setelah simpan tambah -> kembali ke daftar dengan snackbar "Penyewa disimpan"; setelah simpan ubah -> kembali ke detail dengan snackbar "Penyewa disimpan".
+      - Tata letak responsif dalam `SingleChildScrollView` + `SafeArea`, aman overflow pada viewport kecil 400x500 dan textScale 1.3.
+    - Halaman Detail Penyewa (`lib/features/tenant/presentation/pages/tenant_detail_page.dart`):
+      - Rute `/tenants/:id` (dihubungkan dari ketukan kartu di `TenantListPage`).
+      - 4 kondisi layar: loading skeleton statis tanpa timer, 404 not found ramah pengguna dengan tombol kembali, error dengan tombol coba lagi, dan tampilan data lengkap.
+      - Komponen data: Header avatar inisial 48dp + nama + `TenantStatusChip` tunggal, kartu informasi nomor HP (dengan tombol cepat WhatsApp) & catatan, serta placeholder "Kamar & Hunian" dan "Riwayat Pembayaran" (TODO Fase 2).
+      - Reaktivitas stream: Menggunakan `tenantDetailProvider(id)` via `watchByIdWithStatus(id)` di `TenantRepository` yang re-emit otomatis saat data penyewa, hunian, kamar, tagihan, atau pembayaran berubah.
+      - Alur hapus aman: Dialog konfirmasi `ConfirmDialog` dengan teks dampak penghapusan. Jika penyewa memiliki hunian aktif (`TenantHasActiveOccupancyException`), dialog berubah menjadi peringatan satu tombol ("Mengerti") tanpa opsi hapus. Jika berhasil dihapus: soft-delete di database, penjaga state `_isDeleting` mencegah kedipan error "Penyewa tidak ditemukan", lalu kembali ke daftar penyewa dengan snackbar "Penyewa dihapus".
+    - Pemisahan lapisan arsitektur:
+      - Komponen `TenantStatusChip` dan pemetaan status diletakkan murni di lapisan presentasi (`lib/features/tenant/presentation/widgets/tenant_status_chip.dart`); folder `lib/features/tenant/domain/` tetap bersih tanpa import `material.dart` atau `core/widgets`.
+      - Penambahan parameter `maxLengthEnforcement` pada `AppTextField` dan `showCancel` pada `ConfirmDialog` untuk mendukung dialog peringatan tunggal.
+  - File yang berubah:
+    - `lib/core/router/app_router.dart`
+    - `lib/core/strings/app_strings.dart`
+    - `lib/core/widgets/app_text_field.dart`
+    - `lib/core/widgets/confirm_dialog.dart`
+    - `lib/features/tenant/domain/tenant_repository.dart`
+    - `lib/features/tenant/data/tenant_repository_impl.dart`
+    - `lib/features/tenant/presentation/providers/tenant_providers.dart`
+    - `lib/features/tenant/presentation/widgets/tenant_status_chip.dart`
+    - `lib/features/tenant/presentation/pages/tenant_list_page.dart`
+    - `lib/features/tenant/presentation/pages/tenant_form_page.dart`
+    - `lib/features/tenant/presentation/pages/tenant_detail_page.dart`
+    - `test/core/router_test.dart`
+    - `test/core/widgets_test.dart`
+    - `test/features/tenant/tenant_status_test.dart`
+    - `test/features/tenant/tenant_list_page_test.dart`
+    - `test/features/tenant/tenant_form_page_test.dart`
+    - `test/features/tenant/tenant_detail_page_test.dart`
+    - `docs/TASKS.md`
+  - Hasil Uji Otomatis:
+    - `dart format .`: Bersih.
+    - `flutter analyze`: 0 issues (bersih).
+    - `flutter test`: 117/117 tests passed (seluruh test suite proyek lulus 100%).
+  - Batasan yang diketahui:
+    - Nomor telepon rumah dan kontak non-seluler ditolak (aturan normalisasi nomor HP mewajibkan awalan 8 setelah +62 dengan 9-13 digit).
+    - Modul foto KTP (ambil/pilih foto, kompresi, penyimpanan, penghapusan file) ditangguhkan ke F1.4b sesuai rencana bertahap.
+  - Langkah Uji Manual di HP (untuk verifikasi pemilik proyek sebelum mengubah [~] menjadi [x]):
+    1. Tambah Penyewa: Buka tab Penyewa, tekan FAB "+", masukkan nama "Budi Santoso", nomor HP "081234567890", catatan "Penyewa baru". Tekan tombol "Simpan Penyewa", pastikan aplikasi kembali ke daftar dan menampilkan snackbar "Penyewa disimpan".
+    2. Validasi Form: Coba simpan form kosong -> pastikan muncul pesan error merah di nama & HP. Coba masukkan nama > 100 karakter atau catatan > 300 karakter -> pastikan muncul pesan batas maksimal. Coba masukkan nomor non-seluler (mis. 021...) -> pastikan ditolak.
+    3. Detail Penyewa: Ketuk kartu penyewa di daftar -> pastikan masuk ke `/tenants/:id`. Periksa avatar inisial, nama, chip status ("Belum Menghuni" jika belum ada hunian), nomor HP, catatan, serta placeholder hunian & pembayaran.
+    4. Ubah Penyewa: Dari halaman detail, buka menu opsi (tiga titik) -> pilih "Ubah Data". Pastikan form terisi data lama, dan nomor HP ditampilkan tanpa awalan `+62`. Ubah nama/catatan lalu simpan -> pastikan kembali ke halaman detail dan data terbarui seketika (reaktivitas stream).
+    5. Hapus Penyewa Tanpa Hunian: Dari menu opsi di detail, pilih "Hapus Penyewa". Konfirmasi dialog -> pastikan penyewa terhapus, tidak ada kedipan "Penyewa tidak ditemukan", kembali ke daftar dengan snackbar "Penyewa dihapus".
+    6. Hapus Penyewa Berpenghuni Aktif (jika ada data hunian): Dialog peringatan "Tidak Dapat Menghapus Penyewa" hanya menampilkan tombol "Mengerti", dan data penyewa tidak terhapus.
+    7. Double-Tap Prevention: Tekan tombol Simpan dua kali dengan sangat cepat; pastikan tidak ada duplikasi data penyewa di database.
+    8. Mode Pesawat (Offline): Matikan internet; lakukan seluruh alur tambah, buka detail, ubah, dan hapus penyewa tanpa hambatan jaringan.

@@ -51,6 +51,12 @@ void main() {
               builder: (_, _) =>
                   const Scaffold(body: Text('Tambah Penyewa Form Page')),
             ),
+            GoRoute(
+              path: ':id',
+              builder: (_, state) => Scaffold(
+                body: Text('Detail Tenant: ${state.pathParameters['id']}'),
+              ),
+            ),
           ],
         ),
       ],
@@ -367,6 +373,62 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Tambah Penyewa Form Page'), findsOneWidget);
+
+      await disposeApp(tester);
+    });
+
+    testWidgets('Tapping tenant card navigates to /tenants/:id', (
+      tester,
+    ) async {
+      setPhoneScreen(tester);
+
+      await db
+          .into(db.tenants)
+          .insert(
+            TenantsCompanion.insert(
+              id: 't-budi',
+              name: 'Budi Santoso',
+              phone: '081234567890',
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await tester.pumpWidget(wrapWithTheme());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Budi Santoso'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Detail Tenant: t-budi'), findsOneWidget);
+
+      await disposeApp(tester);
+    });
+
+    testWidgets('Tapping tenant card navigates to /tenants/:id', (
+      tester,
+    ) async {
+      setPhoneScreen(tester);
+
+      await db
+          .into(db.tenants)
+          .insert(
+            TenantsCompanion.insert(
+              id: 't-budi',
+              name: 'Budi Santoso',
+              phone: '081234567890',
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await tester.pumpWidget(wrapWithTheme());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Budi Santoso'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Detail Tenant: t-budi'), findsOneWidget);
 
       await disposeApp(tester);
     });

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kosm/app.dart';
 import 'package:kosm/core/database/database.dart';
+import 'package:kosm/core/router/app_router.dart';
 import 'package:kosm/core/strings/strings.dart';
 
 import '../helpers/pump_helpers.dart';
@@ -109,6 +110,60 @@ void main() {
       expect(find.text(AppStrings.moreMenuTitle), findsAtLeastNWidgets(1));
       expect(find.text(AppStrings.moreMenuDesc), findsOneWidget);
       expect(find.text(AppStrings.manageProperties), findsOneWidget);
+
+      await disposeApp(tester);
+    },
+  );
+
+  testWidgets(
+    'Router navigates to /tenants/new, /tenants/:id, and /tenants/:id/edit',
+    (tester) async {
+      setPhoneScreen(tester);
+
+      final now = DateTime.utc(2026, 11, 7);
+      await db
+          .into(db.properties)
+          .insert(
+            PropertiesCompanion.insert(
+              id: 'prop-1',
+              name: 'Kos Melati',
+              address: 'Alamat',
+              contact: '0812',
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await db
+          .into(db.tenants)
+          .insert(
+            TenantsCompanion.insert(
+              id: 't-router-1',
+              name: 'Budi Router',
+              phone: '081234567890',
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Go to /tenants/new
+      appRouter.go('/tenants/new');
+      await tester.pumpAndSettle();
+      expect(find.text(AppStrings.addTenantTitle), findsOneWidget);
+
+      // Go to /tenants/t-router-1
+      appRouter.go('/tenants/t-router-1');
+      await tester.pumpAndSettle();
+      expect(find.text(AppStrings.tenantDetailTitle), findsOneWidget);
+      expect(find.text('Budi Router'), findsOneWidget);
+
+      // Go to /tenants/t-router-1/edit
+      appRouter.go('/tenants/t-router-1/edit');
+      await tester.pumpAndSettle();
+      expect(find.text(AppStrings.editTenantTitle), findsOneWidget);
 
       await disposeApp(tester);
     },

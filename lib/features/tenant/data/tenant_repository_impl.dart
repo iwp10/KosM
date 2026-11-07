@@ -246,6 +246,11 @@ class TenantRepositoryImpl implements TenantRepository {
   }
 
   @override
+  Stream<TenantWithStatus?> watchByIdWithStatus(String id, {DateTime? asOf}) {
+    return _dao.watchStatusChanges(() => getByIdWithStatus(id, asOf: asOf));
+  }
+
+  @override
   Future<void> create(Tenant tenant) async {
     final validName = TenantValidators.validateName(tenant.name);
     final validPhone = TenantValidators.normalizePhone(tenant.phone);
