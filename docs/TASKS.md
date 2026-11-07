@@ -25,7 +25,7 @@
 - [ ] F1.1 Daftar semua penyewa (data + UI + 4 kondisi layar)
 - [ ] F1.3 Cari & saring penyewa
 - [ ] F1.4 Tambah/ubah/hapus penyewa + detail penyewa
-- [~] F1.4a Kolom id_photo_path di tabel tenants (schemaVersion 2 + migrasi + test)
+- [x] F1.4a Kolom id_photo_path di tabel tenants (schemaVersion 2 + migrasi + test)
 - [ ] F1.4b Ambil/pilih foto, kompres, simpan, hapus
 - [ ] F1.2 Ringkasan kos sekilas di Beranda (butuh kamar/tagihan; boleh sementara 0)
 
