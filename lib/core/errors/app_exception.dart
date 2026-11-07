@@ -24,3 +24,28 @@ class PropertyNotFoundException extends AppException {
   const PropertyNotFoundException([super.message = 'Data kos tidak ditemukan.'])
     : super(code: 'PROPERTY_NOT_FOUND');
 }
+
+/// Thrown when tenant validation fails (e.g. invalid name or phone number).
+class TenantValidationException extends AppException {
+  final String field;
+
+  const TenantValidationException({
+    required this.field,
+    required String message,
+  }) : super(message, code: 'TENANT_VALIDATION_ERROR');
+}
+
+/// Thrown when an operation on a tenant is rejected because
+/// the tenant still has an active occupancy.
+class TenantHasActiveOccupancyException extends AppException {
+  const TenantHasActiveOccupancyException([
+    super.message = 'Penyewa tidak dapat dihapus karena masih menempati kamar (hunian aktif).',
+  ]) : super(code: 'TENANT_HAS_ACTIVE_OCCUPANCY');
+}
+
+/// Thrown when a tenant is not found in the database.
+class TenantNotFoundException extends AppException {
+  const TenantNotFoundException([
+    super.message = 'Data penyewa tidak ditemukan.',
+  ]) : super(code: 'TENANT_NOT_FOUND');
+}
