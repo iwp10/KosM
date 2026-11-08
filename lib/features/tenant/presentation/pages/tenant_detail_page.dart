@@ -480,35 +480,6 @@ class _TenantDetailPageState extends ConsumerState<TenantDetailPage> {
                 }
 
                 final absPath = snapshot.data!;
-                final file = File(absPath);
-                if (!file.existsSync()) {
-                  return Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: kosM.surfaceMuted,
-                      borderRadius: AppRadius.buttonRadius,
-                    ),
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.broken_image_outlined,
-                          size: 24,
-                          color: kosM.textSecondary,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          AppStrings.idPhotoNotFound,
-                          style: AppTextStyles.body.copyWith(
-                            color: kosM.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
                 return InkWell(
                   onTap: () =>
                       IdPhotoViewerDialog.show(context, imagePath: absPath),
@@ -519,20 +490,34 @@ class _TenantDetailPageState extends ConsumerState<TenantDetailPage> {
                       ClipRRect(
                         borderRadius: AppRadius.buttonRadius,
                         child: Image.file(
-                          file,
+                          File(absPath),
                           height: 180,
                           width: double.infinity,
                           fit: BoxFit.cover,
                           cacheWidth: 800,
                           errorBuilder: (_, _, _) => Container(
                             height: 120,
-                            color: kosM.surfaceMuted,
+                            decoration: BoxDecoration(
+                              color: kosM.surfaceMuted,
+                              borderRadius: AppRadius.buttonRadius,
+                            ),
                             alignment: Alignment.center,
-                            child: Text(
-                              AppStrings.idPhotoNotFound,
-                              style: AppTextStyles.label.copyWith(
-                                color: kosM.textSecondary,
-                              ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 24,
+                                  color: kosM.textSecondary,
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Text(
+                                  AppStrings.idPhotoNotFound,
+                                  style: AppTextStyles.body.copyWith(
+                                    color: kosM.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

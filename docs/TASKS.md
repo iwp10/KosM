@@ -26,7 +26,7 @@
 - [x] F1.3 Cari & saring penyewa
 - [x] F1.4 Tambah/ubah/hapus penyewa + detail penyewa
 - [x] F1.4a Kolom id_photo_path di tabel tenants (schemaVersion 2 + migrasi + test)
-- [ ] F1.4b Ambil/pilih foto, kompres, simpan, hapus
+- [~] F1.4b Ambil/pilih foto, kompres, simpan, hapus
 - [ ] F1.2 Ringkasan kos sekilas di Beranda (butuh kamar/tagihan; boleh sementara 0)
 
 ## Fase 2 — Kamar, Masuk/Keluar, Tagihan & Pembayaran
@@ -298,3 +298,52 @@
     6. Hapus Penyewa Berpenghuni Aktif (jika ada data hunian): Dialog peringatan "Tidak Dapat Menghapus Penyewa" hanya menampilkan tombol "Mengerti", dan data penyewa tidak terhapus.
     7. Double-Tap Prevention: Tekan tombol Simpan dua kali dengan sangat cepat; pastikan tidak ada duplikasi data penyewa di database.
     8. Mode Pesawat (Offline): Matikan internet; lakukan seluruh alur tambah, buka detail, ubah, dan hapus penyewa tanpa hambatan jaringan.
+
+- 2026-11-08: F1.4b (Foto KTP/identitas penyewa: ambil/pilih, kompresi, penyimpanan privat, pratinjau zoom, isolasi backup, & perbaikan test hang) [~].
+  - Deskripsi Tugas:
+    - Penambahan dependensi resmi: `image_picker: ^1.2.4` dan `path: ^1.9.1`.
+    - Isolasi backup Android: konfigurasi `data_extraction_rules.xml` dan `backup_rules.xml` mengecualikan direktori `app_flutter/id_photos` (root) dan `id_photos` (file) agar data sensitif foto KTP tidak pernah dicadangkan ke Google Drive atau transfer perangkat.
+    - Abstraksi domain & data: `IdPhotoPicker` & `IdPhotoStorage` (savePhoto, deletePhoto, discardTemp, resolveAbsolutePath, fileExists, cleanupOrphans).
+    - Failure-safe orchestration di `TenantRepository.saveTenant`: penyalinan berkas terkompresi ke storage privat, rollback file jika database gagal, pembersihan file lama dan file sementara lewat `discardTemp`.
+    - Pratinjau & Form UI (`TenantFormPage` & `TenantDetailPage`): kartu foto KTP dengan tombol "Ambil Foto" & "Pilih dari Galeri", status terisi dengan tombol "Ganti Foto" & "Hapus Foto", dialog layar penuh interaktif pinch-to-zoom (`IdPhotoViewerDialog`), dan fallback ramah pengguna bila berkas rusak/hilang.
+    - Pemisahan lapisan presentasi: seluruh pembersihan berkas sementara didelegasikan ke `IdPhotoStorage.discardTemp` (tidak ada pemanggilan `dart:io` `exists`, `delete`, `copy`, `writeAs` di lapisan presentasi selain `Image.file`).
+    - Stabilisasi Pengujian & CI:
+      - Penambahan `timeout-minutes: 15` pada job `build` di `.github/workflows/ci.yml`.
+      - Penghapusan ketergantungan I/O nyata di widget tests dengan `FakeIdPhotoStorage` dan PNG 1x1 valid (`kTransparent1x1Png`).
+      - Penggantian `pumpAndSettle()` tanpa batas dengan bounded pump pada pratinjau `Image.file` serta penetapan `timeout: Timeout(30s)`.
+      - Pembersihan panggilan `Future.delayed` di seluruh pengujian, digantikan dengan `await pumpEventQueue()`.
+  - File yang berubah:
+    - `.github/workflows/ci.yml`
+    - `pubspec.yaml` & `pubspec.lock`
+    - `android/app/src/main/AndroidManifest.xml`
+    - `android/app/src/main/res/xml/backup_rules.xml`
+    - `android/app/src/main/res/xml/data_extraction_rules.xml`
+    - `lib/features/tenant/domain/id_photo_picker.dart`
+    - `lib/features/tenant/domain/id_photo_storage.dart`
+    - `lib/features/tenant/data/id_photo_picker_impl.dart`
+    - `lib/features/tenant/data/id_photo_storage_impl.dart`
+    - `lib/features/tenant/data/tenant_dao.dart`
+    - `lib/features/tenant/data/tenant_repository_impl.dart`
+    - `lib/features/tenant/presentation/providers/tenant_providers.dart`
+    - `lib/features/tenant/presentation/pages/tenant_form_page.dart`
+    - `lib/features/tenant/presentation/pages/tenant_detail_page.dart`
+    - `lib/features/tenant/presentation/widgets/id_photo_viewer_dialog.dart`
+    - `test/features/tenant/id_photo_storage_test.dart`
+    - `test/features/tenant/tenant_repository_test.dart`
+    - `test/features/tenant/tenant_form_page_test.dart`
+    - `test/features/tenant/tenant_status_test.dart`
+    - `docs/TASKS.md`
+  - Hasil Uji Otomatis:
+    - `dart format .`: Bersih.
+    - `flutter analyze`: 0 issues (bersih).
+    - `flutter test`: 135/135 tests passed (seluruh test suite proyek lulus 100%).
+    - Uji stabilitas `tenant_form_page_test.dart`: 5 kali berturut-turut lulus 100% tanpa hang (~2 detik per eksekusi).
+  - Langkah Uji Manual di HP (untuk verifikasi pemilik proyek sebelum mengubah [~] menjadi [x]):
+    1. Tambah Penyewa dengan Foto via Kamera: Buka form tambah penyewa, ketuk "Ambil Foto", beri izin kamera, ambil foto KTP. Verifikasi pratinjau muncul dengan tombol "Ganti Foto" dan "Hapus Foto". Simpan penyewa, pastikan tersimpan dan pratinjau tampil di halaman detail.
+    2. Buka & Perbesar Foto: Dari halaman detail, ketuk pratinjau foto KTP. Pastikan dialog full-screen terbuka (`IdPhotoViewerDialog`) dan foto dapat di-pinch to zoom / pan dengan halus.
+    3. Ubah Foto via Galeri: Buka form ubah data penyewa, ketuk "Ganti Foto" -> "Pilih dari Galeri", pilih foto baru. Simpan, pastikan foto terbarui dan file foto lama dihapus dari storage privat.
+    4. Hapus Foto Saja: Buka form ubah, ketuk "Hapus Foto". Simpan, pastikan foto terhapus dari detail dan kolom `id_photo_path` di database bernilai null.
+    5. Hapus Penyewa: Hapus penyewa yang memiliki foto, pastikan file foto terhapus dari storage privat aplikasi.
+    6. Pembatalan / Pop Form: Pilih foto sementara di form lalu tekan tombol kembali tanpa menyimpan; pastikan file sementara dibersihkan dan tidak bocor sebagai file yatim.
+    7. Mode Pesawat (Offline): Pastikan alur kamera/galeri dan penyimpanan lokal berfungsi penuh tanpa koneksi internet.
+  - Sisa Pekerjaan: F1.2 (Ringkasan kos sekilas di Beranda) sebelum memasuki Fase 2.

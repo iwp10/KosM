@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:kosm/core/database/database.dart';
 import 'package:kosm/core/errors/errors.dart';
 import 'package:kosm/features/tenant/data/id_photo_storage_impl.dart';
@@ -548,7 +549,7 @@ void main() {
     });
 
     test('saveTenant with new photo copies file to storage and saves relative path to database', () async {
-      final sampleSource = File('${tempDir.path}/temp_ktp.jpg');
+      final sampleSource = File(p.join(tempDir.path, 'temp_ktp.jpg'));
       await sampleSource.writeAsString('sample-ktp');
 
       final tenant = Tenant(
@@ -571,7 +572,7 @@ void main() {
     });
 
     test('saveTenant with database failure rolls back by deleting newly copied photo', () async {
-      final sampleSource = File('${tempDir.path}/temp_fail.jpg');
+      final sampleSource = File(p.join(tempDir.path, 'temp_fail.jpg'));
       await sampleSource.writeAsString('sample-fail');
 
       // Drop table to force a database failure during save
@@ -591,7 +592,7 @@ void main() {
       );
 
       // Verify no orphan file was left in storage
-      final photoDir = Directory('${tempDir.path}/id_photos');
+      final photoDir = Directory(p.join(tempDir.path, 'id_photos'));
       if (await photoDir.exists()) {
         final files = photoDir.listSync();
         expect(files.isEmpty, isTrue);
@@ -601,7 +602,7 @@ void main() {
     test(
       'saveTenant photo replacement deletes old photo file after success',
       () async {
-        final sampleSource1 = File('${tempDir.path}/ktp1.jpg');
+        final sampleSource1 = File(p.join(tempDir.path, 'ktp1.jpg'));
         await sampleSource1.writeAsString('ktp-1');
 
         final tenant = Tenant(
@@ -621,7 +622,7 @@ void main() {
         expect(await storage.fileExists(firstPath), isTrue);
 
         // Replace photo
-        final sampleSource2 = File('${tempDir.path}/ktp2.png');
+        final sampleSource2 = File(p.join(tempDir.path, 'ktp2.png'));
         await sampleSource2.writeAsString('ktp-2');
         await repository.saveTenant(
           firstSaved,
@@ -638,7 +639,7 @@ void main() {
     );
 
     test('saveTenant with removePhoto: true sets idPhotoPath null and deletes old photo', () async {
-      final sampleSource = File('${tempDir.path}/ktp_remove.jpg');
+      final sampleSource = File(p.join(tempDir.path, 'ktp_remove.jpg'));
       await sampleSource.writeAsString('ktp-remove');
 
       final tenant = Tenant(
@@ -665,7 +666,7 @@ void main() {
     test(
       'softDelete sets idPhotoPath null in database and deletes photo file',
       () async {
-        final sampleSource = File('${tempDir.path}/ktp_softdel.jpg');
+        final sampleSource = File(p.join(tempDir.path, 'ktp_softdel.jpg'));
         await sampleSource.writeAsString('ktp-softdel');
 
         final tenant = Tenant(
@@ -701,7 +702,7 @@ void main() {
     test(
       'softDelete does not delete photo file if database soft-delete fails',
       () async {
-        final sampleSource = File('${tempDir.path}/ktp_nodelete.jpg');
+        final sampleSource = File(p.join(tempDir.path, 'ktp_nodelete.jpg'));
         await sampleSource.writeAsString('ktp-nodelete');
 
         final tenant = Tenant(
@@ -774,7 +775,7 @@ void main() {
     test(
       'cleanupOrphanPhotos queries database and deletes unreferenced photos',
       () async {
-        final sampleSource = File('${tempDir.path}/ktp_keep.jpg');
+        final sampleSource = File(p.join(tempDir.path, 'ktp_keep.jpg'));
         await sampleSource.writeAsString('keep');
 
         final tenant = Tenant(
@@ -792,8 +793,8 @@ void main() {
         final keepPath = saved!.idPhotoPath!;
 
         // Create an unreferenced file older than 10 minutes
-        final photoDir = Directory('${tempDir.path}/id_photos');
-        final orphanFile = File('${photoDir.path}/t-orphan-100.jpg');
+        final photoDir = Directory(p.join(tempDir.path, 'id_photos'));
+        final orphanFile = File(p.join(photoDir.path, 't-orphan-100.jpg'));
         await orphanFile.writeAsString('orphan');
         orphanFile.setLastModifiedSync(
           DateTime.now().subtract(const Duration(minutes: 15)),

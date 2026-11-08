@@ -10,6 +10,7 @@ import '../../../../core/strings/strings.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/utils/utils.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../domain/id_photo_storage.dart';
 import '../../domain/tenant.dart';
 import '../../domain/tenant_validators.dart';
 import '../providers/tenant_providers.dart';
@@ -44,6 +45,7 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
   String? _existingPhotoAbsPath;
   String? _newPhotoTempPath;
   bool _removePhoto = false;
+  late final IdPhotoStorage _photoStorage;
 
   bool get _isEditMode => widget.tenantId != null;
 
@@ -51,6 +53,7 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
   void initState() {
     super.initState();
     _tenantId = widget.tenantId ?? generateUuid();
+    _photoStorage = ref.read(idPhotoStorageProvider);
     if (_isEditMode) {
       _loadExistingTenant();
     }
@@ -62,10 +65,7 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
     _phoneController.dispose();
     _noteController.dispose();
     if (!_hasSaved && _newPhotoTempPath != null) {
-      try {
-        final f = File(_newPhotoTempPath!);
-        if (f.existsSync()) f.deleteSync();
-      } catch (_) {}
+      _photoStorage.discardTemp(_newPhotoTempPath!);
     }
     super.dispose();
   }
@@ -96,11 +96,10 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
 
       if (tenant.idPhotoPath != null) {
         _existingPhotoPath = tenant.idPhotoPath;
-        final storage = ref.read(idPhotoStorageProvider);
-        final absPath = await storage.resolveAbsolutePath(tenant.idPhotoPath!);
-        if (await storage.fileExists(tenant.idPhotoPath!)) {
-          _existingPhotoAbsPath = absPath;
-        }
+        final absPath = await _photoStorage.resolveAbsolutePath(
+          tenant.idPhotoPath!,
+        );
+        _existingPhotoAbsPath = absPath;
       }
 
       setState(() => _isLoadingInitial = false);
@@ -123,10 +122,7 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
           : await picker.pickFromGallery();
       if (path != null && mounted) {
         if (_newPhotoTempPath != null && _newPhotoTempPath != path) {
-          try {
-            final prev = File(_newPhotoTempPath!);
-            if (await prev.exists()) await prev.delete();
-          } catch (_) {}
+          _photoStorage.discardTemp(_newPhotoTempPath!);
         }
         setState(() {
           _newPhotoTempPath = path;
@@ -146,10 +142,7 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
 
   void _deletePhoto() {
     if (_newPhotoTempPath != null) {
-      try {
-        final f = File(_newPhotoTempPath!);
-        if (f.existsSync()) f.deleteSync();
-      } catch (_) {}
+      _photoStorage.discardTemp(_newPhotoTempPath!);
     }
     setState(() {
       _newPhotoTempPath = null;
