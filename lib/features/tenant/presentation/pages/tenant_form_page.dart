@@ -1,12 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../../core/errors/errors.dart';
 import '../../../../core/strings/strings.dart';
 import '../../../../core/theme/theme.dart';
+import '../../../../core/utils/utils.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/tenant.dart';
 import '../../domain/tenant_validators.dart';
@@ -24,6 +26,7 @@ class TenantFormPage extends ConsumerStatefulWidget {
 }
 
 class _TenantFormPageState extends ConsumerState<TenantFormPage> {
+  late final String _tenantId;
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _noteController = TextEditingController();
@@ -34,12 +37,20 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
 
   bool _isLoadingInitial = false;
   bool _isSaving = false;
+  bool _hasSaved = false;
+
+  DateTime? _existingCreatedAt;
+  String? _existingPhotoPath;
+  String? _existingPhotoAbsPath;
+  String? _newPhotoTempPath;
+  bool _removePhoto = false;
 
   bool get _isEditMode => widget.tenantId != null;
 
   @override
   void initState() {
     super.initState();
+    _tenantId = widget.tenantId ?? generateUuid();
     if (_isEditMode) {
       _loadExistingTenant();
     }
@@ -50,6 +61,12 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
     _nameController.dispose();
     _phoneController.dispose();
     _noteController.dispose();
+    if (!_hasSaved && _newPhotoTempPath != null) {
+      try {
+        final f = File(_newPhotoTempPath!);
+        if (f.existsSync()) f.deleteSync();
+      } catch (_) {}
+    }
     super.dispose();
   }
 
@@ -62,6 +79,7 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
 
     if (tenant != null) {
       _nameController.text = tenant.name;
+      _existingCreatedAt = tenant.createdAt;
       // In edit mode: strip '+62' prefix so user edits remaining digits
       final rawPhone = tenant.phone;
       if (rawPhone.startsWith('+62')) {
@@ -75,6 +93,16 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
       }
 
       _noteController.text = tenant.note ?? '';
+
+      if (tenant.idPhotoPath != null) {
+        _existingPhotoPath = tenant.idPhotoPath;
+        final storage = ref.read(idPhotoStorageProvider);
+        final absPath = await storage.resolveAbsolutePath(tenant.idPhotoPath!);
+        if (await storage.fileExists(tenant.idPhotoPath!)) {
+          _existingPhotoAbsPath = absPath;
+        }
+      }
+
       setState(() => _isLoadingInitial = false);
     } else {
       setState(() => _isLoadingInitial = false);
@@ -85,6 +113,83 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
       );
       context.pop();
     }
+  }
+
+  Future<void> _pickPhoto(bool fromCamera) async {
+    final picker = ref.read(idPhotoPickerProvider);
+    try {
+      final path = fromCamera
+          ? await picker.takePhoto()
+          : await picker.pickFromGallery();
+      if (path != null && mounted) {
+        if (_newPhotoTempPath != null && _newPhotoTempPath != path) {
+          try {
+            final prev = File(_newPhotoTempPath!);
+            if (await prev.exists()) await prev.delete();
+          } catch (_) {}
+        }
+        setState(() {
+          _newPhotoTempPath = path;
+          _removePhoto = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackbar.show(
+          context,
+          message: e is AppException ? e.message : 'Gagal memilih foto.',
+          type: SnackbarType.error,
+        );
+      }
+    }
+  }
+
+  void _deletePhoto() {
+    if (_newPhotoTempPath != null) {
+      try {
+        final f = File(_newPhotoTempPath!);
+        if (f.existsSync()) f.deleteSync();
+      } catch (_) {}
+    }
+    setState(() {
+      _newPhotoTempPath = null;
+      _removePhoto = true;
+    });
+  }
+
+  void _showPickSourceModal() {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.bottomSheetRadius,
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text(AppStrings.takePhoto),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _pickPhoto(true);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text(AppStrings.chooseFromGallery),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _pickPhoto(false);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _submit() async {
@@ -137,31 +242,23 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
       final repo = ref.read(tenantRepositoryProvider);
       final now = DateTime.now().toUtc();
 
-      if (!_isEditMode) {
-        // Create new tenant
-        final newTenant = Tenant(
-          id: const Uuid().v4(),
-          name: validatedName!,
-          phone: normalizedPhone!,
-          note: rawNote.isEmpty ? null : rawNote,
-          createdAt: now,
-          updatedAt: now,
-        );
-        await repo.create(newTenant);
-      } else {
-        // Update existing tenant
-        final existing = await repo.getById(widget.tenantId!);
-        if (existing == null) {
-          throw const TenantNotFoundException(AppStrings.tenantNotFoundTitle);
-        }
-        final updatedTenant = existing.copyWith(
-          name: validatedName!,
-          phone: normalizedPhone!,
-          note: rawNote.isEmpty ? null : rawNote,
-          updatedAt: now,
-        );
-        await repo.update(updatedTenant);
-      }
+      final tenant = Tenant(
+        id: _tenantId,
+        name: validatedName!,
+        phone: normalizedPhone!,
+        note: rawNote.isEmpty ? null : rawNote,
+        idPhotoPath: _existingPhotoPath,
+        createdAt: _existingCreatedAt ?? now,
+        updatedAt: now,
+      );
+
+      await repo.saveTenant(
+        tenant,
+        newPhotoTempPath: _newPhotoTempPath,
+        removePhoto: _removePhoto,
+      );
+
+      _hasSaved = true;
 
       if (mounted) {
         AppSnackbar.show(
@@ -204,6 +301,8 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final kosM = context.kosMColors;
+
     if (_isLoadingInitial) {
       return Scaffold(
         appBar: AppBar(
@@ -216,6 +315,12 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
+
+    final String? previewPath =
+        _newPhotoTempPath ??
+        (!_removePhoto && _existingPhotoAbsPath != null
+            ? _existingPhotoAbsPath
+            : null);
 
     return Scaffold(
       appBar: AppBar(
@@ -265,6 +370,96 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
                   if (_noteError != null) setState(() => _noteError = null);
                 },
               ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // ID Photo Section (KTP / Identitas)
+              AppCard(
+                padding: AppSpacing.cardPadding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppStrings.idPhotoSectionTitle,
+                      style: AppTextStyles.label.copyWith(
+                        color: kosM.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      AppStrings.idPhotoHint,
+                      style: AppTextStyles.label.copyWith(
+                        color: kosM.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    if (previewPath != null) ...[
+                      ClipRRect(
+                        borderRadius: AppRadius.buttonRadius,
+                        child: Image.file(
+                          File(previewPath),
+                          height: 140,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          cacheWidth: 600,
+                          errorBuilder: (_, _, _) => Container(
+                            height: 140,
+                            color: kosM.surfaceMuted,
+                            alignment: Alignment.center,
+                            child: Text(
+                              AppStrings.idPhotoNotFound,
+                              style: AppTextStyles.label.copyWith(
+                                color: kosM.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildPhotoButton(
+                            label: AppStrings.changePhoto,
+                            icon: Icons.edit_outlined,
+                            onPressed: _isSaving ? null : _showPickSourceModal,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildPhotoButton(
+                            label: AppStrings.deletePhoto,
+                            icon: Icons.delete_outline_rounded,
+                            color: AppColors.statusOverdueText,
+                            textColor: AppColors.statusOverdueText,
+                            onPressed: _isSaving ? null : _deletePhoto,
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildPhotoButton(
+                            label: AppStrings.takePhoto,
+                            icon: Icons.camera_alt_outlined,
+                            onPressed: _isSaving
+                                ? null
+                                : () => _pickPhoto(true),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildPhotoButton(
+                            label: AppStrings.chooseFromGallery,
+                            icon: Icons.photo_library_outlined,
+                            onPressed: _isSaving
+                                ? null
+                                : () => _pickPhoto(false),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
               const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
                 label: AppStrings.saveTenant,
@@ -275,6 +470,43 @@ class _TenantFormPageState extends ConsumerState<TenantFormPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    Color? color,
+    Color? textColor,
+  }) {
+    final theme = Theme.of(context);
+    final borderColor = color ?? theme.colorScheme.primary;
+    final fgColor = textColor ?? theme.colorScheme.primary;
+
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 52),
+        side: BorderSide(color: borderColor),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.buttonRadius),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      ),
+      onPressed: onPressed,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 20, color: fgColor),
+          const SizedBox(width: AppSpacing.sm),
+          Flexible(
+            child: Text(
+              label,
+              style: AppTextStyles.bodyStrong.copyWith(color: fgColor),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
       ),
     );
   }

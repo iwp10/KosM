@@ -102,14 +102,27 @@ class TenantDao {
     )..where((t) => t.id.equals(companion.id.value))).write(companion);
   }
 
-  /// Soft deletes a tenant by updating deleted_at and updated_at.
+  /// Soft deletes a tenant by updating deleted_at, updated_at, and clearing id_photo_path.
   Future<void> softDeleteTenant(String id, DateTime deletedAt) {
     return (_db.update(_db.tenants)..where((t) => t.id.equals(id))).write(
       TenantsCompanion(
         deletedAt: Value(deletedAt),
         updatedAt: Value(deletedAt),
+        idPhotoPath: const Value(null),
       ),
     );
+  }
+
+  /// Returns all non-null, distinct id_photo_path values currently referenced in the tenants table.
+  Future<List<String>> getAllReferencedIdPhotoPaths() async {
+    final query = _db.selectOnly(_db.tenants, distinct: true)
+      ..addColumns([_db.tenants.idPhotoPath])
+      ..where(_db.tenants.idPhotoPath.isNotNull());
+    final rows = await query.get();
+    return rows
+        .map((r) => r.read(_db.tenants.idPhotoPath))
+        .whereType<String>()
+        .toList();
   }
 
   /// Counts non-deleted active occupancies for a tenant.

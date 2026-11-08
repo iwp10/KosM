@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -8,18 +10,48 @@ import 'package:kosm/core/database/database.dart';
 import 'package:kosm/core/strings/strings.dart';
 import 'package:kosm/core/theme/theme.dart';
 import 'package:kosm/core/widgets/widgets.dart';
+import 'package:kosm/features/tenant/data/id_photo_storage_impl.dart';
+import 'package:kosm/features/tenant/domain/id_photo_picker.dart';
+import 'package:kosm/features/tenant/domain/id_photo_storage.dart';
 import 'package:kosm/features/tenant/presentation/pages/tenant_form_page.dart';
+import 'package:kosm/features/tenant/presentation/providers/tenant_providers.dart';
 
 import '../../helpers/pump_helpers.dart';
 
+class FakeIdPhotoPicker implements IdPhotoPicker {
+  String? nextPhotoPath;
+  Exception? errorToThrow;
+
+  @override
+  Future<String?> takePhoto() async {
+    if (errorToThrow != null) throw errorToThrow!;
+    return nextPhotoPath;
+  }
+
+  @override
+  Future<String?> pickFromGallery() async {
+    if (errorToThrow != null) throw errorToThrow!;
+    return nextPhotoPath;
+  }
+}
+
 void main() {
   late AppDatabase db;
+  late Directory tempDir;
+  late IdPhotoStorage storage;
+  late FakeIdPhotoPicker picker;
   final now = DateTime.utc(2026, 11, 7, 10, 0, 0);
 
   setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
+    tempDir = await Directory.systemTemp.createTemp('kosm_form_test_');
+    storage = IdPhotoStorageImpl(baseDirResolver: () async => tempDir);
+    picker = FakeIdPhotoPicker();
     addTearDown(() async {
       await db.close();
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
     });
 
     // Seed property
@@ -60,7 +92,11 @@ void main() {
     );
 
     return ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(db)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        idPhotoStorageProvider.overrideWithValue(storage),
+        idPhotoPickerProvider.overrideWithValue(picker),
+      ],
       child: MaterialApp.router(
         theme: AppTheme.lightTheme,
         routerConfig: router,
@@ -460,5 +496,158 @@ void main() {
 
       await disposeApp(tester);
     });
+
+    testWidgets(
+      'Photo card: picking photo shows preview, pop without save cleans up temp file',
+      (tester) async {
+        setPhoneScreen(tester);
+
+        final tempKtp = File('${tempDir.path}/temp_sample.jpg');
+        await tempKtp.writeAsString('fake-ktp-data');
+        picker.nextPhotoPath = tempKtp.path;
+
+        await tester.pumpWidget(wrapWithTheme());
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.idPhotoSectionTitle), findsOneWidget);
+        expect(find.text(AppStrings.takePhoto), findsOneWidget);
+        expect(find.text(AppStrings.chooseFromGallery), findsOneWidget);
+
+        // Tap Ambil Foto
+        final takePhotoBtn = find.text(AppStrings.takePhoto);
+        await tester.ensureVisible(takePhotoBtn);
+        await tester.tap(takePhotoBtn);
+        await tester.pumpAndSettle();
+
+        // Preview should now show "Ganti Foto" and "Hapus Foto"
+        expect(find.text(AppStrings.changePhoto), findsOneWidget);
+        expect(find.text(AppStrings.deletePhoto), findsOneWidget);
+
+        // Now leave the page without saving (dispose/pop)
+        await disposeApp(tester);
+
+        // Temp file should be deleted on dispose when not saved
+        expect(await tempKtp.exists(), isFalse);
+      },
+    );
+
+    testWidgets(
+      'Photo card: saving persists chosen photo to database and storage',
+      (tester) async {
+        setPhoneScreen(tester);
+
+        final tempKtp = File('${tempDir.path}/temp_save.jpg');
+        await tempKtp.writeAsString('saved-ktp-bytes');
+        picker.nextPhotoPath = tempKtp.path;
+
+        await tester.pumpWidget(wrapWithTheme());
+        await tester.pumpAndSettle();
+
+        final nameField = find.widgetWithText(
+          AppTextField,
+          AppStrings.tenantNameLabel,
+        );
+        final phoneField = find.widgetWithText(
+          AppTextField,
+          AppStrings.tenantPhoneLabel,
+        );
+
+        await tester.enterText(
+          find.descendant(of: nameField, matching: find.byType(TextField)),
+          'Budi Ada Foto',
+        );
+        await tester.enterText(
+          find.descendant(of: phoneField, matching: find.byType(TextField)),
+          '81234567890',
+        );
+
+        // Tap Pilih dari Galeri
+        final galleryBtn = find.text(AppStrings.chooseFromGallery);
+        await tester.ensureVisible(galleryBtn);
+        await tester.tap(galleryBtn);
+        await tester.pumpAndSettle();
+
+        final saveButton = find.widgetWithText(
+          PrimaryButton,
+          AppStrings.saveTenant,
+        );
+        await tester.ensureVisible(saveButton);
+        await tester.tap(saveButton);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.text(AppStrings.tenantSavedSuccess), findsOneWidget);
+        await tester.pumpAndSettle();
+
+        final inDb = await db.select(db.tenants).get();
+        expect(inDb.length, 1);
+        expect(inDb.first.idPhotoPath, isNotNull);
+        expect(inDb.first.idPhotoPath!.startsWith('id_photos/'), isTrue);
+        expect(await storage.fileExists(inDb.first.idPhotoPath!), isTrue);
+
+        await disposeApp(tester);
+      },
+    );
+
+    testWidgets(
+      'Photo card: delete photo button removes preview and clears photo on save',
+      (tester) async {
+        setPhoneScreen(tester);
+
+        // Seed tenant with existing photo
+        final existingPhotoFile = File(
+          '${tempDir.path}/id_photos/t-delphoto-1.jpg',
+        );
+        await existingPhotoFile.create(recursive: true);
+        await existingPhotoFile.writeAsString('existing-photo');
+
+        await db
+            .into(db.tenants)
+            .insert(
+              TenantsCompanion.insert(
+                id: 't-delphoto',
+                name: 'Budi Edit Foto',
+                phone: '+6281234567890',
+                idPhotoPath: const Value('id_photos/t-delphoto-1.jpg'),
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+
+        await tester.pumpWidget(wrapWithTheme(tenantId: 't-delphoto'));
+        await tester.pumpAndSettle();
+
+        // Should show change and delete photo buttons
+        expect(find.text(AppStrings.changePhoto), findsOneWidget);
+        final deletePhotoBtn = find.text(AppStrings.deletePhoto);
+        expect(deletePhotoBtn, findsOneWidget);
+
+        // Tap delete photo
+        await tester.ensureVisible(deletePhotoBtn);
+        await tester.tap(deletePhotoBtn);
+        await tester.pumpAndSettle();
+
+        // Now buttons should revert to Ambil Foto & Pilih dari Galeri
+        expect(find.text(AppStrings.takePhoto), findsOneWidget);
+        expect(find.text(AppStrings.chooseFromGallery), findsOneWidget);
+
+        // Save
+        final saveButton = find.widgetWithText(
+          PrimaryButton,
+          AppStrings.saveTenant,
+        );
+        await tester.ensureVisible(saveButton);
+        await tester.tap(saveButton);
+        await tester.pumpAndSettle();
+
+        final inDb = await (db.select(
+          db.tenants,
+        )..where((t) => t.id.equals('t-delphoto'))).getSingle();
+        expect(inDb.idPhotoPath, isNull);
+        expect(await existingPhotoFile.exists(), isFalse);
+
+        await disposeApp(tester);
+      },
+    );
   });
 }

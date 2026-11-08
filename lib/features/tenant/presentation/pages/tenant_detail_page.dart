@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +8,9 @@ import '../../../../core/errors/errors.dart';
 import '../../../../core/strings/strings.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../domain/tenant.dart';
 import '../providers/tenant_providers.dart';
+import '../widgets/id_photo_viewer_dialog.dart';
 import '../widgets/tenant_status_chip.dart';
 
 /// Detail page displaying comprehensive tenant information, occupancy history, and payment history.
@@ -40,8 +44,6 @@ class _TenantDetailPageState extends ConsumerState<TenantDetailPage> {
 
     try {
       final repo = ref.read(tenantRepositoryProvider);
-      // Soft delete tenant in database
-      // TODO(F1.4b): File foto KTP ikut dihapus dari penyimpanan perangkat saat soft delete
       await repo.softDelete(widget.id);
 
       if (mounted) {
@@ -366,7 +368,12 @@ class _TenantDetailPageState extends ConsumerState<TenantDetailPage> {
 
                 const SizedBox(height: AppSpacing.lg),
 
-                // 3. Occupancy History Section (TODO Fase 2)
+                // 3. ID Photo Section
+                _buildIdPhotoCard(context, ref, tenant),
+
+                const SizedBox(height: AppSpacing.lg),
+
+                // 4. Occupancy History Section (TODO Fase 2)
                 AppCard(
                   padding: AppSpacing.cardPadding,
                   child: Column(
@@ -432,6 +439,118 @@ class _TenantDetailPageState extends ConsumerState<TenantDetailPage> {
         const SizedBox(height: AppSpacing.xs),
         Text(value, style: AppTextStyles.bodyStrong.copyWith(color: textColor)),
       ],
+    );
+  }
+
+  Widget _buildIdPhotoCard(BuildContext context, WidgetRef ref, Tenant tenant) {
+    final kosM = context.kosMColors;
+
+    return AppCard(
+      padding: AppSpacing.cardPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppStrings.idPhotoDetailTitle,
+            style: AppTextStyles.heading.copyWith(color: kosM.textPrimary),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (tenant.idPhotoPath == null)
+            Row(
+              children: [
+                Icon(Icons.badge_outlined, size: 24, color: kosM.textSecondary),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  AppStrings.noIdPhoto,
+                  style: AppTextStyles.body.copyWith(color: kosM.textSecondary),
+                ),
+              ],
+            )
+          else
+            FutureBuilder<String>(
+              future: ref
+                  .read(idPhotoStorageProvider)
+                  .resolveAbsolutePath(tenant.idPhotoPath!),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const SizedBox(
+                    height: 140,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                final absPath = snapshot.data!;
+                final file = File(absPath);
+                if (!file.existsSync()) {
+                  return Container(
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: kosM.surfaceMuted,
+                      borderRadius: AppRadius.buttonRadius,
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image_outlined,
+                          size: 24,
+                          color: kosM.textSecondary,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          AppStrings.idPhotoNotFound,
+                          style: AppTextStyles.body.copyWith(
+                            color: kosM.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return InkWell(
+                  onTap: () =>
+                      IdPhotoViewerDialog.show(context, imagePath: absPath),
+                  borderRadius: AppRadius.buttonRadius,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: AppRadius.buttonRadius,
+                        child: Image.file(
+                          file,
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          cacheWidth: 800,
+                          errorBuilder: (_, _, _) => Container(
+                            height: 120,
+                            color: kosM.surfaceMuted,
+                            alignment: Alignment.center,
+                            child: Text(
+                              AppStrings.idPhotoNotFound,
+                              style: AppTextStyles.label.copyWith(
+                                color: kosM.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        AppStrings.tapToEnlarge,
+                        style: AppTextStyles.label.copyWith(
+                          color: kosM.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
     );
   }
 }

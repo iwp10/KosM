@@ -49,3 +49,40 @@ class TenantNotFoundException extends AppException {
     super.message = 'Data penyewa tidak ditemukan.',
   ]) : super(code: 'TENANT_NOT_FOUND');
 }
+
+/// Thrown when image picker operation fails.
+class IdPhotoPickerException extends AppException {
+  const IdPhotoPickerException([
+    super.message = 'Gagal mengambil atau memilih foto.',
+  ]) : super(code: 'ID_PHOTO_PICKER_ERROR');
+}
+
+/// Thrown when camera permission is denied.
+class CameraPermissionDeniedException extends AppException {
+  const CameraPermissionDeniedException([
+    super.message = 'Izin kamera tidak diberikan. Izinkan akses kamera di pengaturan perangkat.',
+  ]) : super(code: 'CAMERA_PERMISSION_DENIED');
+}
+
+/// Thrown when no camera application or device is available.
+class NoCameraAvailableException extends AppException {
+  const NoCameraAvailableException([
+    super.message =
+        'Kamera tidak ditemukan atau tidak tersedia pada perangkat ini.',
+  ]) : super(code: 'NO_CAMERA_AVAILABLE');
+}
+
+/// Thrown when an image with an unsupported format / extension is uploaded.
+class UnsupportedImageFormatException extends AppException {
+  const UnsupportedImageFormatException([
+    super.message =
+        'Format foto tidak didukung. Gunakan format JPG, JPEG, atau PNG.',
+  ]) : super(code: 'UNSUPPORTED_IMAGE_FORMAT');
+}
+
+/// Thrown when photo storage operations (save/delete/read) fail.
+class IdPhotoStorageException extends AppException {
+  const IdPhotoStorageException([
+    super.message = 'Gagal memproses penyimpanan foto. Pastikan ruang penyimpanan mencukupi.',
+  ]) : super(code: 'ID_PHOTO_STORAGE_ERROR');
+}

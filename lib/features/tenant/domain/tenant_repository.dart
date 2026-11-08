@@ -43,4 +43,19 @@ abstract class TenantRepository {
   /// Soft deletes a tenant by setting deleted_at.
   /// Throws [TenantHasActiveOccupancyException] if the tenant still has an active occupancy.
   Future<void> softDelete(String id);
+
+  /// Saves a tenant (create or update) orchestrating atomic photo storage operations:
+  /// 1. If [newPhotoTempPath] is provided, copies new photo to versioned permanent storage.
+  /// 2. Saves tenant record in the database. If DB save fails, deletes the newly copied photo and rethrows.
+  /// 3. If DB save succeeds:
+  ///    - If a previous photo existed and was replaced or [removePhoto] is true, deletes the old photo.
+  ///    - If [newPhotoTempPath] was provided, cleans up the temporary source file.
+  Future<void> saveTenant(
+    Tenant tenant, {
+    String? newPhotoTempPath,
+    bool removePhoto = false,
+  });
+
+  /// Cleans up orphaned photo files that are no longer referenced by any tenant in the database.
+  Future<void> cleanupOrphanPhotos();
 }

@@ -101,6 +101,19 @@ abstract class AppStrings {
   static const String understandAction = 'Mengerti';
   static const String noteMaxLengthExceeded = 'Catatan maksimal 300 karakter.';
 
+  // ID Photo (KTP / Identitas)
+  static const String idPhotoSectionTitle = 'Foto KTP / Identitas (Opsional)';
+  static const String idPhotoDetailTitle = 'Foto KTP / Identitas';
+  static const String takePhoto = 'Ambil Foto';
+  static const String chooseFromGallery = 'Pilih dari Galeri';
+  static const String deletePhoto = 'Hapus Foto';
+  static const String changePhoto = 'Ganti Foto';
+  static const String idPhotoHint = 'Foto disimpan di perangkat ini.';
+  static const String noIdPhoto = 'Belum ada foto';
+  static const String idPhotoNotFound = 'Foto tidak ditemukan';
+  static const String close = 'Tutup';
+  static const String tapToEnlarge = 'Ketuk untuk memperbesar';
+
   // More Menu (Tab Lainnya)
   static const String moreMenuTitle = 'Menu Lainnya';
   static const String moreMenuDesc =

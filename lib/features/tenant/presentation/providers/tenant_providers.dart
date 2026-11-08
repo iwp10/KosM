@@ -2,10 +2,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/database.dart';
 import '../../../property/presentation/providers/property_providers.dart';
+import '../../data/id_photo_picker_impl.dart';
+import '../../data/id_photo_storage_impl.dart';
 import '../../data/tenant_dao.dart';
 import '../../data/tenant_repository_impl.dart';
+import '../../domain/id_photo_picker.dart';
+import '../../domain/id_photo_storage.dart';
 import '../../domain/tenant.dart';
 import '../../domain/tenant_repository.dart';
+
+/// Provider for [IdPhotoStorage].
+final idPhotoStorageProvider = Provider<IdPhotoStorage>((ref) {
+  return IdPhotoStorageImpl();
+});
+
+/// Provider for [IdPhotoPicker].
+final idPhotoPickerProvider = Provider<IdPhotoPicker>((ref) {
+  return IdPhotoPickerImpl();
+});
 
 /// Provider for [TenantDao].
 final tenantDaoProvider = Provider<TenantDao>((ref) {
@@ -16,7 +30,8 @@ final tenantDaoProvider = Provider<TenantDao>((ref) {
 /// Provider for [TenantRepository].
 final tenantRepositoryProvider = Provider<TenantRepository>((ref) {
   final dao = ref.watch(tenantDaoProvider);
-  return TenantRepositoryImpl(dao);
+  final storage = ref.watch(idPhotoStorageProvider);
+  return TenantRepositoryImpl(dao, photoStorage: storage);
 });
 
 /// Filter status options for tenant list.
