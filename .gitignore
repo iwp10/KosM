@@ -52,3 +52,6 @@ android/key.properties
 *.jks
 *.keystore
 .env
+hs_err_pid*.log
+replay_pid*.log
+*.hprof
