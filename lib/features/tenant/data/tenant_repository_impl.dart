@@ -1,19 +1,26 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/errors/errors.dart';
 import '../../../core/utils/utils.dart';
+import '../domain/id_photo_storage.dart';
 import '../domain/tenant.dart';
 import '../domain/tenant_repository.dart';
 import '../domain/tenant_validators.dart';
+import 'id_photo_storage_impl.dart';
 import 'tenant_dao.dart';
 
 /// Implementation of [TenantRepository] using Drift SQLite.
 /// Reference: docs/ARCHITECTURE.md section 3 & 4.
 class TenantRepositoryImpl implements TenantRepository {
   final TenantDao _dao;
+  final IdPhotoStorage _photoStorage;
 
-  TenantRepositoryImpl(this._dao);
+  TenantRepositoryImpl(this._dao, {IdPhotoStorage? photoStorage})
+    : _photoStorage = photoStorage ?? IdPhotoStorageImpl();
 
   Tenant _toDomain(TenantData data) {
     return Tenant(
@@ -292,8 +299,92 @@ class TenantRepositoryImpl implements TenantRepository {
       );
     }
 
-    // TODO(F1.4b): File foto ikut dihapus dari penyimpanan lokal saat softDelete penyewa.
+    final existing = await _dao.getTenantById(id);
+    final photoPath = existing?.idPhotoPath;
+
     final now = DateTime.now().toUtc();
     await _dao.softDeleteTenant(id, now);
+
+    if (photoPath != null) {
+      try {
+        await _photoStorage.deletePhoto(photoPath);
+      } catch (e) {
+        debugPrint('Gagal menghapus file foto saat softDelete penyewa: $e');
+      }
+    }
+  }
+
+  @override
+  Future<void> saveTenant(
+    Tenant tenant, {
+    String? newPhotoTempPath,
+    bool removePhoto = false,
+  }) async {
+    final validName = TenantValidators.validateName(tenant.name);
+    final validPhone = TenantValidators.normalizePhone(tenant.phone);
+    final id = tenant.id.isEmpty ? generateUuid() : tenant.id;
+    final now = DateTime.now().toUtc();
+
+    final existing = await _dao.getTenantById(id);
+    final oldPhotoPath = existing?.idPhotoPath;
+
+    String? newRelativePath;
+    if (newPhotoTempPath != null) {
+      newRelativePath = await _photoStorage.savePhoto(
+        tempPath: newPhotoTempPath,
+        tenantId: id,
+      );
+    }
+
+    final String? finalPhotoPath =
+        newRelativePath ??
+        (removePhoto ? null : (oldPhotoPath ?? tenant.idPhotoPath));
+
+    final tenantToSave = Tenant(
+      id: id,
+      name: validName,
+      phone: validPhone,
+      note: tenant.note,
+      idPhotoPath: finalPhotoPath,
+      updatedAt: now,
+      createdAt: existing == null ? now : tenant.createdAt,
+    );
+
+    try {
+      if (existing == null) {
+        await _dao.insertTenant(_toCompanion(tenantToSave));
+      } else {
+        await _dao.updateTenant(_toCompanion(tenantToSave));
+      }
+    } catch (e) {
+      // Failure-safety: if DB save fails, remove newly saved file and leave existing intact
+      if (newRelativePath != null) {
+        try {
+          await _photoStorage.deletePhoto(newRelativePath);
+        } catch (_) {}
+      }
+      rethrow;
+    }
+
+    // On DB success: clean up old photo or temporary file
+    if (newRelativePath != null) {
+      if (oldPhotoPath != null && oldPhotoPath != newRelativePath) {
+        await _photoStorage.deletePhoto(oldPhotoPath);
+      }
+      try {
+        final tempFile = File(newPhotoTempPath!);
+        if (await tempFile.exists()) {
+          await tempFile.delete();
+        }
+      } catch (_) {}
+    } else if (removePhoto && oldPhotoPath != null) {
+      await _photoStorage.deletePhoto(oldPhotoPath);
+    }
+  }
+
+  @override
+  Future<void> cleanupOrphanPhotos() async {
+    final referenced = await _dao.getAllReferencedIdPhotoPaths();
+    await _photoStorage.cleanupOrphans(referenced);
   }
 }

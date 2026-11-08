@@ -1,23 +1,34 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kosm/core/database/database.dart';
 import 'package:kosm/core/errors/errors.dart';
+import 'package:kosm/features/tenant/data/id_photo_storage_impl.dart';
 import 'package:kosm/features/tenant/data/tenant_dao.dart';
 import 'package:kosm/features/tenant/data/tenant_repository_impl.dart';
+import 'package:kosm/features/tenant/domain/id_photo_storage.dart';
 import 'package:kosm/features/tenant/domain/tenant.dart';
 import 'package:kosm/features/tenant/domain/tenant_repository.dart';
 
 void main() {
   late AppDatabase db;
+  late Directory tempDir;
+  late IdPhotoStorage storage;
   late TenantRepository repository;
 
-  setUp(() {
+  setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
+    tempDir = await Directory.systemTemp.createTemp('kosm_repo_test_');
+    storage = IdPhotoStorageImpl(baseDirResolver: () async => tempDir);
     final dao = TenantDao(db);
-    repository = TenantRepositoryImpl(dao);
+    repository = TenantRepositoryImpl(dao, photoStorage: storage);
     addTearDown(() async {
       await db.close();
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
     });
   });
 
@@ -535,5 +546,264 @@ void main() {
         't-unassigned',
       ]);
     });
+
+    test('saveTenant with new photo copies file to storage and saves relative path to database', () async {
+      final sampleSource = File('${tempDir.path}/temp_ktp.jpg');
+      await sampleSource.writeAsString('sample-ktp');
+
+      final tenant = Tenant(
+        id: 't-photo-1',
+        name: 'Budi Foto',
+        phone: '081234567890',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await repository.saveTenant(tenant, newPhotoTempPath: sampleSource.path);
+
+      final saved = await repository.getById('t-photo-1');
+      expect(saved, isNotNull);
+      expect(saved!.idPhotoPath, isNotNull);
+      expect(saved.idPhotoPath!.startsWith('id_photos/t-photo-1-'), isTrue);
+      expect(await storage.fileExists(saved.idPhotoPath!), isTrue);
+      // Source temp file should be deleted on success
+      expect(await sampleSource.exists(), isFalse);
+    });
+
+    test('saveTenant with database failure rolls back by deleting newly copied photo', () async {
+      final sampleSource = File('${tempDir.path}/temp_fail.jpg');
+      await sampleSource.writeAsString('sample-fail');
+
+      // Drop table to force a database failure during save
+      await db.customStatement('DROP TABLE tenants;');
+
+      final tenant = Tenant(
+        id: 't-fail',
+        name: 'Budi Gagal',
+        phone: '081234567890',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await expectLater(
+        repository.saveTenant(tenant, newPhotoTempPath: sampleSource.path),
+        throwsA(anything),
+      );
+
+      // Verify no orphan file was left in storage
+      final photoDir = Directory('${tempDir.path}/id_photos');
+      if (await photoDir.exists()) {
+        final files = photoDir.listSync();
+        expect(files.isEmpty, isTrue);
+      }
+    });
+
+    test(
+      'saveTenant photo replacement deletes old photo file after success',
+      () async {
+        final sampleSource1 = File('${tempDir.path}/ktp1.jpg');
+        await sampleSource1.writeAsString('ktp-1');
+
+        final tenant = Tenant(
+          id: 't-replace',
+          name: 'Budi Ganti',
+          phone: '081234567890',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await repository.saveTenant(
+          tenant,
+          newPhotoTempPath: sampleSource1.path,
+        );
+        final firstSaved = await repository.getById('t-replace');
+        final firstPath = firstSaved!.idPhotoPath!;
+        expect(await storage.fileExists(firstPath), isTrue);
+
+        // Replace photo
+        final sampleSource2 = File('${tempDir.path}/ktp2.png');
+        await sampleSource2.writeAsString('ktp-2');
+        await repository.saveTenant(
+          firstSaved,
+          newPhotoTempPath: sampleSource2.path,
+        );
+
+        final secondSaved = await repository.getById('t-replace');
+        final secondPath = secondSaved!.idPhotoPath!;
+        expect(secondPath, isNot(equals(firstPath)));
+        expect(await storage.fileExists(secondPath), isTrue);
+        // Old photo must have been deleted
+        expect(await storage.fileExists(firstPath), isFalse);
+      },
+    );
+
+    test('saveTenant with removePhoto: true sets idPhotoPath null and deletes old photo', () async {
+      final sampleSource = File('${tempDir.path}/ktp_remove.jpg');
+      await sampleSource.writeAsString('ktp-remove');
+
+      final tenant = Tenant(
+        id: 't-remove',
+        name: 'Budi Hapus Foto',
+        phone: '081234567890',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await repository.saveTenant(tenant, newPhotoTempPath: sampleSource.path);
+      final saved = await repository.getById('t-remove');
+      final oldPath = saved!.idPhotoPath!;
+      expect(await storage.fileExists(oldPath), isTrue);
+
+      // Remove photo
+      await repository.saveTenant(saved, removePhoto: true);
+
+      final updated = await repository.getById('t-remove');
+      expect(updated!.idPhotoPath, isNull);
+      expect(await storage.fileExists(oldPath), isFalse);
+    });
+
+    test(
+      'softDelete sets idPhotoPath null in database and deletes photo file',
+      () async {
+        final sampleSource = File('${tempDir.path}/ktp_softdel.jpg');
+        await sampleSource.writeAsString('ktp-softdel');
+
+        final tenant = Tenant(
+          id: 't-softdel',
+          name: 'Budi Softdel',
+          phone: '081234567890',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await repository.saveTenant(
+          tenant,
+          newPhotoTempPath: sampleSource.path,
+        );
+        final saved = await repository.getById('t-softdel');
+        final photoPath = saved!.idPhotoPath!;
+        expect(await storage.fileExists(photoPath), isTrue);
+
+        await repository.softDelete('t-softdel');
+
+        // Verify DB record has idPhotoPath = null and deletedAt set
+        final rawRow = await (db.select(
+          db.tenants,
+        )..where((t) => t.id.equals('t-softdel'))).getSingle();
+        expect(rawRow.deletedAt, isNotNull);
+        expect(rawRow.idPhotoPath, isNull);
+
+        // Verify file is deleted
+        expect(await storage.fileExists(photoPath), isFalse);
+      },
+    );
+
+    test(
+      'softDelete does not delete photo file if database soft-delete fails',
+      () async {
+        final sampleSource = File('${tempDir.path}/ktp_nodelete.jpg');
+        await sampleSource.writeAsString('ktp-nodelete');
+
+        final tenant = Tenant(
+          id: 't-nodelete',
+          name: 'Budi Tetap',
+          phone: '081234567890',
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        await repository.saveTenant(
+          tenant,
+          newPhotoTempPath: sampleSource.path,
+        );
+        final saved = await repository.getById('t-nodelete');
+        final photoPath = saved!.idPhotoPath!;
+        expect(await storage.fileExists(photoPath), isTrue);
+
+        // Add active occupancy so softDelete is rejected by TenantHasActiveOccupancyException
+        await db
+            .into(db.properties)
+            .insert(
+              PropertiesCompanion.insert(
+                id: 'p-nodelete',
+                name: 'Kos Budi',
+                address: 'Alamat',
+                contact: '08123456789',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+        await db
+            .into(db.rooms)
+            .insert(
+              RoomsCompanion.insert(
+                id: 'r-nodelete',
+                propertyId: 'p-nodelete',
+                number: '101',
+                referenceRateType: 'monthly',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+        await db
+            .into(db.occupancies)
+            .insert(
+              OccupanciesCompanion.insert(
+                id: 'o-nodelete',
+                tenantId: 't-nodelete',
+                roomId: 'r-nodelete',
+                startDate: now,
+                rateType: 'monthly',
+                rateAmount: 500000,
+                status: 'active',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+
+        await expectLater(
+          repository.softDelete('t-nodelete'),
+          throwsA(isA<TenantHasActiveOccupancyException>()),
+        );
+
+        // Verify file was NOT deleted!
+        expect(await storage.fileExists(photoPath), isTrue);
+      },
+    );
+
+    test(
+      'cleanupOrphanPhotos queries database and deletes unreferenced photos',
+      () async {
+        final sampleSource = File('${tempDir.path}/ktp_keep.jpg');
+        await sampleSource.writeAsString('keep');
+
+        final tenant = Tenant(
+          id: 't-keep',
+          name: 'Budi Simpan',
+          phone: '081234567890',
+          createdAt: now,
+          updatedAt: now,
+        );
+        await repository.saveTenant(
+          tenant,
+          newPhotoTempPath: sampleSource.path,
+        );
+        final saved = await repository.getById('t-keep');
+        final keepPath = saved!.idPhotoPath!;
+
+        // Create an unreferenced file older than 10 minutes
+        final photoDir = Directory('${tempDir.path}/id_photos');
+        final orphanFile = File('${photoDir.path}/t-orphan-100.jpg');
+        await orphanFile.writeAsString('orphan');
+        orphanFile.setLastModifiedSync(
+          DateTime.now().subtract(const Duration(minutes: 15)),
+        );
+
+        await repository.cleanupOrphanPhotos();
+
+        expect(await storage.fileExists(keepPath), isTrue);
+        expect(await orphanFile.exists(), isFalse);
+      },
+    );
   });
 }
