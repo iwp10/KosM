@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/errors/app_exception.dart';
@@ -16,24 +17,12 @@ class IdPhotoStorageImpl implements IdPhotoStorage {
 
   static const Set<String> _allowedExtensions = {'jpg', 'jpeg', 'png'};
 
-  String _getExtension(String path) {
-    final dotIndex = path.lastIndexOf('.');
-    if (dotIndex == -1 || dotIndex == path.length - 1) return '';
-    return path.substring(dotIndex + 1).toLowerCase();
-  }
-
-  String _getBasename(String path) {
-    final normalized = path.replaceAll('\\', '/');
-    final slashIndex = normalized.lastIndexOf('/');
-    if (slashIndex == -1) return path;
-    return normalized.substring(slashIndex + 1);
-  }
-
-  String _join(String dir, String sub) {
-    if (dir.endsWith(Platform.pathSeparator) || dir.endsWith('/')) {
-      return '$dir$sub';
+  String _cleanExtension(String path) {
+    final ext = p.extension(path);
+    if (ext.startsWith('.')) {
+      return ext.substring(1).toLowerCase();
     }
-    return '$dir${Platform.pathSeparator}$sub';
+    return ext.toLowerCase();
   }
 
   @override
@@ -46,21 +35,21 @@ class IdPhotoStorageImpl implements IdPhotoStorage {
       throw const IdPhotoStorageException('File foto sumber tidak ditemukan.');
     }
 
-    final ext = _getExtension(tempPath);
+    final ext = _cleanExtension(tempPath);
     if (!_allowedExtensions.contains(ext)) {
       throw const UnsupportedImageFormatException();
     }
 
     try {
       final baseDir = await _baseDirResolver();
-      final photoDir = Directory(_join(baseDir.path, 'id_photos'));
+      final photoDir = Directory(p.join(baseDir.path, 'id_photos'));
       if (!await photoDir.exists()) {
         await photoDir.create(recursive: true);
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = '$tenantId-$timestamp.$ext';
-      final destinationPath = _join(photoDir.path, fileName);
+      final destinationPath = p.join(photoDir.path, fileName);
 
       await tempFile.copy(destinationPath);
       return 'id_photos/$fileName';
@@ -86,13 +75,9 @@ class IdPhotoStorageImpl implements IdPhotoStorage {
   @override
   Future<String> resolveAbsolutePath(String relativePath) async {
     final baseDir = await _baseDirResolver();
-    final normalizedRel = relativePath.replaceAll('\\', '/');
-    final parts = normalizedRel.split('/').where((s) => s.isNotEmpty).toList();
-    var current = baseDir.path;
-    for (final part in parts) {
-      current = _join(current, part);
-    }
-    return current;
+    // Normalize relative path segments
+    final normalized = p.normalize(relativePath);
+    return p.join(baseDir.path, normalized);
   }
 
   @override
@@ -112,11 +97,11 @@ class IdPhotoStorageImpl implements IdPhotoStorage {
   }) async {
     try {
       final baseDir = await _baseDirResolver();
-      final photoDir = Directory(_join(baseDir.path, 'id_photos'));
+      final photoDir = Directory(p.join(baseDir.path, 'id_photos'));
       if (!await photoDir.exists()) return;
 
       final normalizedReferenced = referencedRelativePaths
-          .map((r) => r.replaceAll('\\', '/'))
+          .map((r) => p.normalize(r).replaceAll('\\', '/'))
           .toSet();
 
       final now = DateTime.now();
@@ -124,7 +109,7 @@ class IdPhotoStorageImpl implements IdPhotoStorage {
 
       for (final entity in entities) {
         if (entity is File) {
-          final filename = _getBasename(entity.path);
+          final filename = p.basename(entity.path);
           final relPath = 'id_photos/$filename';
 
           if (!normalizedReferenced.contains(relPath)) {
@@ -140,7 +125,19 @@ class IdPhotoStorageImpl implements IdPhotoStorage {
         }
       }
     } catch (e) {
-      debugPrint('Gagal menjalankan pembersihan foto yatim: $e');
+      debugPrint('Error saat menjalankan cleanupOrphans: $e');
+    }
+  }
+
+  @override
+  Future<void> discardTemp(String tempPath) async {
+    try {
+      final file = File(tempPath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // Best-effort cleanup
     }
   }
 }

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
@@ -371,12 +369,7 @@ class TenantRepositoryImpl implements TenantRepository {
       if (oldPhotoPath != null && oldPhotoPath != newRelativePath) {
         await _photoStorage.deletePhoto(oldPhotoPath);
       }
-      try {
-        final tempFile = File(newPhotoTempPath!);
-        if (await tempFile.exists()) {
-          await tempFile.delete();
-        }
-      } catch (_) {}
+      await _photoStorage.discardTemp(newPhotoTempPath!);
     } else if (removePhoto && oldPhotoPath != null) {
       await _photoStorage.deletePhoto(oldPhotoPath);
     }

@@ -429,7 +429,7 @@ void main() {
       );
 
       // Allow initial query to emit
-      await Future.delayed(const Duration(milliseconds: 50));
+      await pumpEventQueue();
 
       // Insert full payment
       await db
@@ -763,7 +763,7 @@ void main() {
         emitsInOrder(['Penyewa Terhapus Stream', isNull]),
       );
 
-      await Future.delayed(const Duration(milliseconds: 50));
+      await pumpEventQueue();
       await repository.softDelete('t-soft-del-stream');
     });
 
@@ -786,7 +786,7 @@ void main() {
       addTearDown(sub.cancel);
 
       // 1. Initial emission: unassigned
-      await Future.delayed(const Duration(milliseconds: 50));
+      await pumpEventQueue();
       expect(emissionStatuses.last, TenantStatus.unassigned);
 
       // 2. Occupancy added: active
@@ -805,7 +805,7 @@ void main() {
               updatedAt: yesterdayUtc,
             ),
           );
-      await Future.delayed(const Duration(milliseconds: 50));
+      await pumpEventQueue();
       expect(emissionStatuses.last, TenantStatus.active);
 
       // 3. Charge added: overdue
@@ -825,7 +825,7 @@ void main() {
               updatedAt: yesterdayUtc,
             ),
           );
-      await Future.delayed(const Duration(milliseconds: 50));
+      await pumpEventQueue();
       expect(emissionStatuses.last, TenantStatus.overdue);
 
       // 4. Payment added: back to active
@@ -842,7 +842,7 @@ void main() {
               updatedAt: todayUtc,
             ),
           );
-      await Future.delayed(const Duration(milliseconds: 50));
+      await pumpEventQueue();
       expect(emissionStatuses.last, TenantStatus.active);
 
       // 5. Tenant table update: changes name
@@ -855,122 +855,7 @@ void main() {
           updatedAt: todayUtc,
         ),
       );
-      await Future.delayed(const Duration(milliseconds: 50));
-      final latest = await repository.getByIdWithStatus('t-reactive');
-      expect(latest?.tenant.name, 'Penyewa Reaktif Baru');
-    });
-
-    test('watchByIdWithStatus: emits null for soft-deleted tenant', () async {
-      await repository.create(
-        Tenant(
-          id: 't-soft-del-stream',
-          name: 'Penyewa Terhapus Stream',
-          phone: '081234567890',
-          createdAt: todayUtc,
-          updatedAt: todayUtc,
-        ),
-      );
-
-      final stream = repository.watchByIdWithStatus('t-soft-del-stream');
-
-      expect(
-        stream.map((t) => t?.tenant.name),
-        emitsInOrder(['Penyewa Terhapus Stream', isNull]),
-      );
-
-      await Future.delayed(const Duration(milliseconds: 50));
-      await repository.softDelete('t-soft-del-stream');
-    });
-
-    test('watchByIdWithStatus: re-emits on tenant, occupancy, room, charge, and payment changes', () async {
-      await repository.create(
-        Tenant(
-          id: 't-reactive',
-          name: 'Penyewa Reaktif',
-          phone: '081234567890',
-          createdAt: todayUtc,
-          updatedAt: todayUtc,
-        ),
-      );
-
-      final stream = repository.watchByIdWithStatus('t-reactive');
-      final emissionStatuses = <TenantStatus?>[];
-      final sub = stream.listen((item) {
-        emissionStatuses.add(item?.status);
-      });
-      addTearDown(sub.cancel);
-
-      // 1. Initial emission: unassigned
-      await Future.delayed(const Duration(milliseconds: 50));
-      expect(emissionStatuses.last, TenantStatus.unassigned);
-
-      // 2. Occupancy added: active
-      await db
-          .into(db.occupancies)
-          .insert(
-            OccupanciesCompanion.insert(
-              id: 'occ-react',
-              tenantId: 't-reactive',
-              roomId: 'room-1',
-              startDate: yesterdayUtc,
-              rateType: 'monthly',
-              rateAmount: 1500000,
-              status: 'active',
-              createdAt: yesterdayUtc,
-              updatedAt: yesterdayUtc,
-            ),
-          );
-      await Future.delayed(const Duration(milliseconds: 50));
-      expect(emissionStatuses.last, TenantStatus.active);
-
-      // 3. Charge added: overdue
-      await db
-          .into(db.charges)
-          .insert(
-            ChargesCompanion.insert(
-              id: 'ch-react',
-              occupancyId: 'occ-react',
-              type: 'rent',
-              description: 'Sewa',
-              amount: 1500000,
-              periodStart: yesterdayUtc,
-              periodEnd: todayUtc,
-              dueDate: yesterdayUtc,
-              createdAt: yesterdayUtc,
-              updatedAt: yesterdayUtc,
-            ),
-          );
-      await Future.delayed(const Duration(milliseconds: 50));
-      expect(emissionStatuses.last, TenantStatus.overdue);
-
-      // 4. Payment added: back to active
-      await db
-          .into(db.payments)
-          .insert(
-            PaymentsCompanion.insert(
-              id: 'pay-react',
-              chargeId: 'ch-react',
-              amount: 1500000,
-              paidAt: todayUtc,
-              method: 'transfer',
-              createdAt: todayUtc,
-              updatedAt: todayUtc,
-            ),
-          );
-      await Future.delayed(const Duration(milliseconds: 50));
-      expect(emissionStatuses.last, TenantStatus.active);
-
-      // 5. Tenant table update: changes name
-      await repository.update(
-        Tenant(
-          id: 't-reactive',
-          name: 'Penyewa Reaktif Baru',
-          phone: '081234567890',
-          createdAt: todayUtc,
-          updatedAt: todayUtc,
-        ),
-      );
-      await Future.delayed(const Duration(milliseconds: 50));
+      await pumpEventQueue();
       final latest = await repository.getByIdWithStatus('t-reactive');
       expect(latest?.tenant.name, 'Penyewa Reaktif Baru');
     });
