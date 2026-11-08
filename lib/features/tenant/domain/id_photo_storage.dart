@@ -32,4 +32,8 @@ abstract class IdPhotoStorage {
     List<String> referencedRelativePaths, {
     Duration orphanThreshold = const Duration(minutes: 10),
   });
+
+  /// Safely discards/deletes an unpersisted temporary photo file at [tempPath].
+  /// Does not throw if the file does not exist or if deletion encounters an error.
+  Future<void> discardTemp(String tempPath);
 }

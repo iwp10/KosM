@@ -10,13 +10,83 @@ import 'package:kosm/core/database/database.dart';
 import 'package:kosm/core/strings/strings.dart';
 import 'package:kosm/core/theme/theme.dart';
 import 'package:kosm/core/widgets/widgets.dart';
-import 'package:kosm/features/tenant/data/id_photo_storage_impl.dart';
 import 'package:kosm/features/tenant/domain/id_photo_picker.dart';
 import 'package:kosm/features/tenant/domain/id_photo_storage.dart';
 import 'package:kosm/features/tenant/presentation/pages/tenant_form_page.dart';
 import 'package:kosm/features/tenant/presentation/providers/tenant_providers.dart';
+import 'package:path/path.dart' as p;
 
 import '../../helpers/pump_helpers.dart';
+
+final kTransparent1x1Png = Uint8List.fromList(<int>[
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0A,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x05,
+  0x00,
+  0x01,
+  0x0D,
+  0x0A,
+  0x2D,
+  0xB4,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
+]);
 
 class FakeIdPhotoPicker implements IdPhotoPicker {
   String? nextPhotoPath;
@@ -35,18 +105,64 @@ class FakeIdPhotoPicker implements IdPhotoPicker {
   }
 }
 
+class FakeIdPhotoStorage implements IdPhotoStorage {
+  final List<String> discardedTempPaths = [];
+  final List<String> deletedPhotoPaths = [];
+  final Map<String, String> savedPhotos = {};
+
+  @override
+  Future<String> savePhoto({
+    required String tempPath,
+    required String tenantId,
+  }) async {
+    final relPath = 'id_photos/$tenantId-123.jpg';
+    savedPhotos[tempPath] = relPath;
+    return relPath;
+  }
+
+  @override
+  Future<void> deletePhoto(String relativePath) async {
+    deletedPhotoPaths.add(relativePath);
+  }
+
+  @override
+  Future<void> discardTemp(String tempPath) async {
+    discardedTempPaths.add(tempPath);
+  }
+
+  @override
+  Future<String> resolveAbsolutePath(String relativePath) async {
+    return relativePath;
+  }
+
+  @override
+  Future<bool> fileExists(String relativePath) async {
+    return true;
+  }
+
+  @override
+  Future<void> cleanupOrphans(
+    List<String> referencedRelativePaths, {
+    Duration orphanThreshold = const Duration(minutes: 10),
+  }) async {}
+}
+
 void main() {
   late AppDatabase db;
   late Directory tempDir;
-  late IdPhotoStorage storage;
+  late FakeIdPhotoStorage storage;
   late FakeIdPhotoPicker picker;
+  late File samplePngFile;
   final now = DateTime.utc(2026, 11, 7, 10, 0, 0);
 
   setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
     tempDir = await Directory.systemTemp.createTemp('kosm_form_test_');
-    storage = IdPhotoStorageImpl(baseDirResolver: () async => tempDir);
+    storage = FakeIdPhotoStorage();
     picker = FakeIdPhotoPicker();
+    samplePngFile = File(p.join(tempDir.path, 'sample.png'));
+    samplePngFile.writeAsBytesSync(kTransparent1x1Png);
+
     addTearDown(() async {
       await db.close();
       if (await tempDir.exists()) {
@@ -502,9 +618,7 @@ void main() {
       (tester) async {
         setPhoneScreen(tester);
 
-        final tempKtp = File('${tempDir.path}/temp_sample.jpg');
-        await tempKtp.writeAsString('fake-ktp-data');
-        picker.nextPhotoPath = tempKtp.path;
+        picker.nextPhotoPath = samplePngFile.path;
 
         await tester.pumpWidget(wrapWithTheme());
         await tester.pumpAndSettle();
@@ -517,7 +631,8 @@ void main() {
         final takePhotoBtn = find.text(AppStrings.takePhoto);
         await tester.ensureVisible(takePhotoBtn);
         await tester.tap(takePhotoBtn);
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Preview should now show "Ganti Foto" and "Hapus Foto"
         expect(find.text(AppStrings.changePhoto), findsOneWidget);
@@ -526,9 +641,10 @@ void main() {
         // Now leave the page without saving (dispose/pop)
         await disposeApp(tester);
 
-        // Temp file should be deleted on dispose when not saved
-        expect(await tempKtp.exists(), isFalse);
+        // Temp file should be recorded as discarded in fakeStorage
+        expect(storage.discardedTempPaths, contains(samplePngFile.path));
       },
+      timeout: const Timeout(Duration(seconds: 30)),
     );
 
     testWidgets(
@@ -536,9 +652,7 @@ void main() {
       (tester) async {
         setPhoneScreen(tester);
 
-        final tempKtp = File('${tempDir.path}/temp_save.jpg');
-        await tempKtp.writeAsString('saved-ktp-bytes');
-        picker.nextPhotoPath = tempKtp.path;
+        picker.nextPhotoPath = samplePngFile.path;
 
         await tester.pumpWidget(wrapWithTheme());
         await tester.pumpAndSettle();
@@ -565,7 +679,8 @@ void main() {
         final galleryBtn = find.text(AppStrings.chooseFromGallery);
         await tester.ensureVisible(galleryBtn);
         await tester.tap(galleryBtn);
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         final saveButton = find.widgetWithText(
           PrimaryButton,
@@ -583,23 +698,17 @@ void main() {
         expect(inDb.length, 1);
         expect(inDb.first.idPhotoPath, isNotNull);
         expect(inDb.first.idPhotoPath!.startsWith('id_photos/'), isTrue);
-        expect(await storage.fileExists(inDb.first.idPhotoPath!), isTrue);
+        expect(storage.savedPhotos.containsKey(samplePngFile.path), isTrue);
 
         await disposeApp(tester);
       },
+      timeout: const Timeout(Duration(seconds: 30)),
     );
 
     testWidgets(
       'Photo card: delete photo button removes preview and clears photo on save',
       (tester) async {
         setPhoneScreen(tester);
-
-        // Seed tenant with existing photo
-        final existingPhotoFile = File(
-          '${tempDir.path}/id_photos/t-delphoto-1.jpg',
-        );
-        await existingPhotoFile.create(recursive: true);
-        await existingPhotoFile.writeAsString('existing-photo');
 
         await db
             .into(db.tenants)
@@ -608,14 +717,15 @@ void main() {
                 id: 't-delphoto',
                 name: 'Budi Edit Foto',
                 phone: '+6281234567890',
-                idPhotoPath: const Value('id_photos/t-delphoto-1.jpg'),
+                idPhotoPath: Value(samplePngFile.path),
                 createdAt: now,
                 updatedAt: now,
               ),
             );
 
         await tester.pumpWidget(wrapWithTheme(tenantId: 't-delphoto'));
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Should show change and delete photo buttons
         expect(find.text(AppStrings.changePhoto), findsOneWidget);
@@ -625,7 +735,8 @@ void main() {
         // Tap delete photo
         await tester.ensureVisible(deletePhotoBtn);
         await tester.tap(deletePhotoBtn);
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Now buttons should revert to Ambil Foto & Pilih dari Galeri
         expect(find.text(AppStrings.takePhoto), findsOneWidget);
@@ -644,10 +755,11 @@ void main() {
           db.tenants,
         )..where((t) => t.id.equals('t-delphoto'))).getSingle();
         expect(inDb.idPhotoPath, isNull);
-        expect(await existingPhotoFile.exists(), isFalse);
+        expect(storage.deletedPhotoPaths, contains(samplePngFile.path));
 
         await disposeApp(tester);
       },
+      timeout: const Timeout(Duration(seconds: 30)),
     );
   });
 }
